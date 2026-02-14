@@ -547,170 +547,164 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 
 	return (
 		<div
-			className={`flex-1 flex flex-col h-full ${isDarkMode ? "bg-zinc-950" : "bg-white"} overflow-hidden`}
+			className={`flex-1 flex flex-col h-full ${isDarkMode ? "bg-zinc-950" : "bg-white"} overflow-hidden relative`}
 		>
 			{/* Editor Header */}
 			<div
-				className={`p-2 border-b ${isDarkMode ? "border-zinc-800 bg-zinc-950" : "border-zinc-100 bg-white"} flex items-center justify-between z-10`}
+				className={`px-8 pt-12 pb-6 flex items-end justify-between z-10 max-w-4xl mx-auto w-full`}
 			>
-				<input
-					type="text"
-					value={title}
-					onChange={handleTitleChange}
-					placeholder="Note Title"
-					className={`text-lg font-bold bg-transparent border-none outline-none w-full max-w-3xl ${isDarkMode ? "text-zinc-100 placeholder:text-zinc-800" : "text-zinc-900 placeholder:text-zinc-200"}`}
-				/>
-				<div className="flex items-center gap-2">
+				<div className="flex-1 min-w-0">
+					<input
+						type="text"
+						value={title}
+						onChange={handleTitleChange}
+						placeholder="Note Title"
+						className={`text-4xl font-black bg-transparent border-none outline-none w-full placeholder:opacity-20 ${isDarkMode ? "text-zinc-100 placeholder:text-zinc-100" : "text-zinc-900 placeholder:text-zinc-900"}`}
+					/>
+				</div>
+				<div className="flex items-center gap-3 ml-4 mb-2">
 					{isSaving && (
-						<Loader2 className="w-4 h-4 animate-spin text-zinc-400" />
+						<div className="flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-900 text-[10px] font-bold text-zinc-400 animate-pulse">
+							<Loader2 className="w-3 h-3 animate-spin" />
+							SAVING
+						</div>
 					)}
 					<button
 						onClick={toggleRecording}
-						className={`p-2.5 rounded-xl transition-all ${
+						className={`p-2 rounded-xl transition-all ${
 							isRecording
-								? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 animate-pulse ring-1 ring-red-200 dark:ring-red-900"
-								: `hover:${isDarkMode ? "bg-zinc-800" : "bg-zinc-100"} text-zinc-500`
+								? "bg-red-500 text-white animate-pulse"
+								: `text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900`
 						}`}
+						title="Voice Note"
 					>
-						{isRecording ? (
-							<Square className="w-5 h-5 fill-current" />
-						) : (
-							<Mic className="w-5 h-5" />
-						)}
+						{isRecording ? <Square className="w-4 h-4 fill-current" /> : <Mic className="w-4 h-4" />}
 					</button>
 				</div>
 			</div>
 
-			{/* Toolbar */}
-			<div
-				className={`px-8 py-2 border-b ${isDarkMode ? "border-zinc-800 bg-zinc-950" : "border-zinc-100 bg-white"} flex items-center gap-1 overflow-x-auto scrollbar-hide sticky top-0 z-10`}
-			>
-				<ToolbarButton
-					active={editor.isActive("heading", { level: 1 })}
-					onClick={() =>
-						editor.chain().focus().toggleHeading({ level: 1 }).run()
-					}
-					isDarkMode={isDarkMode}
-				>
-					<Heading1 className="w-4 h-4" />
-				</ToolbarButton>
-				<ToolbarButton
-					active={editor.isActive("heading", { level: 2 })}
-					onClick={() =>
-						editor.chain().focus().toggleHeading({ level: 2 }).run()
-					}
-					isDarkMode={isDarkMode}
-				>
-					<Heading2 className="w-4 h-4" />
-				</ToolbarButton>
+			{/* Toolbar - Floating & Minimal */}
+			<div className="max-w-4xl mx-auto w-full px-8 mb-4">
 				<div
-					className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`}
-				/>
-				<ToolbarButton
-					active={editor.isActive("bold")}
-					onClick={() => editor.chain().focus().toggleBold().run()}
-					isDarkMode={isDarkMode}
+					className={`py-1.5 px-2 border ${isDarkMode ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white/50"} backdrop-blur-md rounded-2xl flex items-center gap-0.5 overflow-x-auto scrollbar-hide sticky top-0 z-10 shadow-sm`}
 				>
-					<Bold className="w-4 h-4" />
-				</ToolbarButton>
-				<ToolbarButton
-					active={editor.isActive("italic")}
-					onClick={() => editor.chain().focus().toggleItalic().run()}
-					isDarkMode={isDarkMode}
-				>
-					<Italic className="w-4 h-4" />
-				</ToolbarButton>
-				<ToolbarButton
-					active={editor.isActive("link")}
-					onClick={() => {
-						const previousUrl = editor.getAttributes("link").href;
-						setLinkUrl(previousUrl || "");
-						setShowLinkModal(true);
-					}}
-					isDarkMode={isDarkMode}
-				>
-					<LinkIcon className="w-4 h-4" />
-				</ToolbarButton>
-				<div
-					className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`}
-				/>
-				<ToolbarButton
-					active={editor.isActive("bulletList")}
-					onClick={() => editor.chain().focus().toggleBulletList().run()}
-					isDarkMode={isDarkMode}
-				>
-					<List className="w-4 h-4" />
-				</ToolbarButton>
-				<ToolbarButton
-					active={editor.isActive("orderedList")}
-					onClick={() => editor.chain().focus().toggleOrderedList().run()}
-					isDarkMode={isDarkMode}
-				>
-					<ListOrdered className="w-4 h-4" />
-				</ToolbarButton>
-				<div
-					className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`}
-				/>
-				<ToolbarButton
-					active={editor.isActive("taskList")}
-					onClick={() => editor.chain().focus().toggleTaskList().run()}
-					isDarkMode={isDarkMode}
-				>
-					<CheckSquare className="w-4 h-4" />
-				</ToolbarButton>
-				<ToolbarButton
-					active={editor.isActive("codeBlock")}
-					onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-					isDarkMode={isDarkMode}
-				>
-					<Code className="w-4 h-4" />
-				</ToolbarButton>
-				<ToolbarButton
-					active={false}
-					onClick={() => {
-						setMediaType("image");
-						setShowMediaModal(true);
-					}}
-					isDarkMode={isDarkMode}
-				>
-					<ImageIcon className="w-4 h-4" />
-				</ToolbarButton>
-				<ToolbarButton
-					active={editor.isActive("table")}
-					onClick={() => {
-						setMediaType("table");
-						setShowMediaModal(true);
-					}}
-					isDarkMode={isDarkMode}
-				>
-					<TableIcon className="w-4 h-4" />
-				</ToolbarButton>
-				<ToolbarButton
-					active={false}
-					onClick={() => editor.chain().focus().toggleBlockquote().run()}
-					isDarkMode={isDarkMode}
-				>
-					<Info className="w-4 h-4" />
-				</ToolbarButton>
+					<ToolbarButton
+						active={editor.isActive("heading", { level: 1 })}
+						onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+						isDarkMode={isDarkMode}
+					>
+						<Heading1 className="w-3.5 h-3.5" />
+					</ToolbarButton>
+					<ToolbarButton
+						active={editor.isActive("heading", { level: 2 })}
+						onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+						isDarkMode={isDarkMode}
+					>
+						<Heading2 className="w-3.5 h-3.5" />
+					</ToolbarButton>
+					<div className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`} />
+					<ToolbarButton
+						active={editor.isActive("bold")}
+						onClick={() => editor.chain().focus().toggleBold().run()}
+						isDarkMode={isDarkMode}
+					>
+						<Bold className="w-3.5 h-3.5" />
+					</ToolbarButton>
+					<ToolbarButton
+						active={editor.isActive("italic")}
+						onClick={() => editor.chain().focus().toggleItalic().run()}
+						isDarkMode={isDarkMode}
+					>
+						<Italic className="w-3.5 h-3.5" />
+					</ToolbarButton>
+					<ToolbarButton
+						active={editor.isActive("link")}
+						onClick={() => {
+							const previousUrl = editor.getAttributes("link").href;
+							setLinkUrl(previousUrl || "");
+							setShowLinkModal(true);
+						}}
+						isDarkMode={isDarkMode}
+					>
+						<LinkIcon className="w-3.5 h-3.5" />
+					</ToolbarButton>
+					<div className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`} />
+					<ToolbarButton
+						active={editor.isActive("bulletList")}
+						onClick={() => editor.chain().focus().toggleBulletList().run()}
+						isDarkMode={isDarkMode}
+					>
+						<List className="w-3.5 h-3.5" />
+					</ToolbarButton>
+					<ToolbarButton
+						active={editor.isActive("orderedList")}
+						onClick={() => editor.chain().focus().toggleOrderedList().run()}
+						isDarkMode={isDarkMode}
+					>
+						<ListOrdered className="w-3.5 h-3.5" />
+					</ToolbarButton>
+					<ToolbarButton
+						active={editor.isActive("taskList")}
+						onClick={() => editor.chain().focus().toggleTaskList().run()}
+						isDarkMode={isDarkMode}
+					>
+						<CheckSquare className="w-3.5 h-3.5" />
+					</ToolbarButton>
+					<div className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`} />
+					<ToolbarButton
+						active={editor.isActive("codeBlock")}
+						onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+						isDarkMode={isDarkMode}
+					>
+						<Code className="w-3.5 h-3.5" />
+					</ToolbarButton>
+					<ToolbarButton
+						active={false}
+						onClick={() => {
+							setMediaType("image");
+							setShowMediaModal(true);
+						}}
+						isDarkMode={isDarkMode}
+					>
+						<ImageIcon className="w-3.5 h-3.5" />
+					</ToolbarButton>
+					<ToolbarButton
+						active={editor.isActive("table")}
+						onClick={() => {
+							setMediaType("table");
+							setShowMediaModal(true);
+						}}
+						isDarkMode={isDarkMode}
+					>
+						<TableIcon className="w-3.5 h-3.5" />
+					</ToolbarButton>
+				</div>
 			</div>
 
 			{/* Editor Content */}
-			<div
-				className={`flex-1 overflow-y-auto px-8 py-8 prose ${isDarkMode ? "prose-invert prose-zinc" : "prose-zinc"} max-w-none prose-p:my-1 prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-a:underline decoration-indigo-400/30 underline-offset-4 hover:prose-a:text-indigo-700 dark:hover:prose-a:text-indigo-300`}
-			>
-				<style>{`
-					.ProseMirror a {
-						color: ${isDarkMode ? "#818cf8" : "#4f46e5"} !important;
-						text-decoration: underline !important;
-						text-decoration-color: ${isDarkMode ? "rgba(129, 140, 248, 0.4)" : "rgba(79, 70, 229, 0.4)"} !important;
-						text-underline-offset: 4px !important;
-						font-weight: 500 !important;
-					}
-					.ProseMirror a:hover {
-						color: ${isDarkMode ? "#a5b4fc" : "#4338ca"} !important;
-					}
-				`}</style>
-				<EditorContent editor={editor} />
+			<div className="flex-1 overflow-y-auto scrollbar-hide">
+				<div
+					className={`px-8 pb-32 prose ${isDarkMode ? "prose-invert prose-zinc" : "prose-zinc"} max-w-4xl mx-auto w-full prose-p:my-1 prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-a:underline decoration-indigo-400/30 underline-offset-4 hover:prose-a:text-indigo-700 dark:hover:prose-a:text-indigo-300`}
+				>
+					<style>{`
+						.ProseMirror a {
+							color: ${isDarkMode ? "#818cf8" : "#4f46e5"} !important;
+							text-decoration: underline !important;
+							text-decoration-color: ${isDarkMode ? "rgba(129, 140, 248, 0.4)" : "rgba(79, 70, 229, 0.4)"} !important;
+							text-underline-offset: 4px !important;
+							font-weight: 500 !important;
+						}
+						.ProseMirror a:hover {
+							color: ${isDarkMode ? "#a5b4fc" : "#4338ca"} !important;
+						}
+						.ProseMirror p.is-editor-empty:first-child::before {
+							content: "Start writing your thoughts...";
+							color: ${isDarkMode ? "#3f3f46" : "#d1d5db"};
+							font-style: normal;
+						}
+					`}</style>
+					<EditorContent editor={editor} />
+				</div>
 			</div>
 
 			{/* Voice Input Modal/Overlay */}

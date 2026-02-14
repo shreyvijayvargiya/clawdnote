@@ -41,9 +41,10 @@ const IndexPage = () => {
 		displayName: "Local User",
 		photoURL: null,
 	});
-	const [searchQuery, setSearchQuery] = useState("");
 	const [activeNoteId, setActiveNoteId] = useState(null);
-	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
+	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 	const [showProfileModal, setShowProfileModal] = useState(false);
 	const [systemInfo, setSystemInfo] = useState({
 		workspacePath: "",
@@ -183,226 +184,197 @@ const IndexPage = () => {
 
 	return (
 		<div
-			className={`${isDarkMode ? "dark bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900"} font-sans transition-colors duration-300`}
+			className={`${isDarkMode ? "dark bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900"} font-sans transition-colors duration-300 min-h-screen`}
 		>
-			{/* Sidebar Overlay */}
+			{/* Sidebar Overlay (Mobile) */}
 			{isSidebarOpen && (
 				<div
-					className="fixed inset-0 z-40 bg-zinc-950/20 backdrop-blur-sm md:hidden"
+					className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
 					onClick={() => setIsSidebarOpen(false)}
 				/>
 			)}
 
-			<div className="flex h-screen">
+			<div className="flex h-screen overflow-hidden relative">
+				{/* Sidebar Toggle (Floating) */}
+				<button
+					onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+					className={`absolute left-6 bottom-6 z-50 p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl hover:scale-110 transition-all hidden md:flex items-center justify-center group`}
+					title={isSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
+				>
+					<Menu className={`w-5 h-5 transition-colors ${isSidebarCollapsed ? "text-zinc-500" : "text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-200"}`} />
+				</button>
+
 				{/* Sidebar */}
 				<aside
-					className={`fixed inset-y-0 left-0 z-50 w-72 border-r border-zinc-200 dark:border-zinc-800 flex flex-col bg-zinc-50/50 dark:bg-zinc-950 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+					className={`fixed inset-y-0 left-0 z-50 w-80 border-r border-zinc-100 dark:border-zinc-900 flex flex-col bg-zinc-50/50 dark:bg-zinc-950 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) md:relative ${
 						isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-					}`}
+					} ${isSidebarCollapsed ? "md:-ml-80" : "md:ml-0"}`}
 				>
-					<div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-						<div className="flex items-center justify-between mb-4">
-							<h1 className="text-xl font-bold tracking-tight bg-gradient-to-br from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-500 bg-clip-text text-transparent">
-								OpenNote
-							</h1>
-							<div className="flex items-center gap-2">
-								<button
-									onClick={() => setIsSidebarOpen(false)}
-									className="md:hidden p-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-								>
-									<X className="w-4 h-4" />
-								</button>
+					<div className="p-8 flex flex-col h-full">
+						<div className="flex items-center justify-between mb-10">
+							<div className="flex items-center gap-3">
+								<div className="w-10 h-10 rounded-2xl bg-zinc-600 shadow-lg shadow-zinc-500/20 flex items-center justify-center rotate-3 hover:rotate-0 transition-transform duration-300">
+									<FileText className="w-5 h-5 text-white" />
+								</div>
+								<h1 className="text-xl font-black tracking-tight">OpenNote</h1>
+							</div>
+							<div className="flex items-center gap-1.5">
 								<button
 									onClick={toggleTheme}
-									className="p-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-									title={
-										isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"
-									}
+									className="p-2.5 rounded-xl hover:bg-white dark:hover:bg-zinc-900 transition-all text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
 								>
-									{isDarkMode ? (
-										<Sun className="w-4 h-4" />
-									) : (
-										<Moon className="w-4 h-4" />
-									)}
+									{isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
 								</button>
 								<button
-									onClick={() => {
-										handleCreateNote();
-										setIsSidebarOpen(false);
-									}}
-									className="p-1 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
+									onClick={handleCreateNote}
+									className="p-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:scale-105 transition-all shadow-md"
 								>
 									<Plus className="w-4 h-4" />
 								</button>
 							</div>
 						</div>
-						<div className="relative">
-							<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+
+						<div className="relative mb-8">
+							<Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300" />
 							<input
 								type="text"
-								placeholder="Search notes..."
-								className="w-full pl-9 pr-4 py-1.5 bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-zinc-200 dark:focus:ring-zinc-700 transition-all outline-none"
+								placeholder="Quick search..."
+								className="w-full pl-11 pr-4 py-3 bg-white dark:bg-zinc-900 border-none rounded-2xl text-sm shadow-sm focus:ring-2 focus:ring-zinc-500/10 transition-all outline-none placeholder:text-zinc-300"
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 							/>
 						</div>
-					</div>
 
-					<div className="flex-1 overflow-y-auto py-1">
-						{filteredNotes.length > 0 ? (
-							filteredNotes.map((note) => (
-								<button
-									key={note.id}
-									onClick={() => {
-										setActiveNoteId(note.id);
-										setIsSidebarOpen(false);
-									}}
-									className={`w-full text-left p-3 hover:bg-white dark:hover:bg-zinc-900 transition-colors group relative ${
-										activeNoteId === note.id
-											? "bg-white dark:bg-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-700"
-											: ""
-									}`}
-								>
-									<p
-										className={`font-semibold text-xs truncate pr-2 ${activeNoteId === note.id ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-700 dark:text-zinc-300"}`}
+						<div className="flex-1 overflow-y-auto -mx-2 px-2 space-y-1.5 scrollbar-hide">
+							{filteredNotes.length > 0 ? (
+								filteredNotes.map((note) => (
+									<button
+										key={note.id}
+										onClick={() => {
+											setActiveNoteId(note.id);
+											if (window.innerWidth < 768) setIsSidebarOpen(false);
+										}}
+										className={`w-full text-left p-4 rounded-2xl transition-all group relative flex flex-col gap-1.5 ${
+											activeNoteId === note.id
+												? "bg-white dark:bg-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800"
+												: "hover:bg-white/50 dark:hover:bg-zinc-900/50"
+										}`}
 									>
-										{note.title || "Untitled"}:{" "}
-										<span className="font-normal text-zinc-500 dark:text-zinc-400">
+										<span className={`font-bold text-xs truncate pr-6 ${activeNoteId === note.id ? "text-zinc-600 dark:text-zinc-400" : "text-zinc-700 dark:text-zinc-300"}`}>
+											{note.title || "Untitled"}
+										</span>
+										<span className={`text-[10px] truncate leading-relaxed ${activeNoteId === note.id ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-500"}`}>
 											{note.content?.replace(/<[^>]*>/g, "") || "No content"}
 										</span>
-									</p>
-									<div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-										<button
-											onClick={(e) => {
-												e.stopPropagation();
-												handleDeleteNote(note.id);
-											}}
-											className="text-zinc-400 hover:text-red-500"
-										>
-											<Trash className="w-3.5 h-3.5" />
-										</button>
+										<div className="absolute right-3 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
+											<button
+												onClick={(e) => {
+													e.stopPropagation();
+													handleDeleteNote(note.id);
+												}}
+												className="p-1 text-zinc-300 hover:text-red-500 transition-colors"
+											>
+												<Trash className="w-3.5 h-3.5" />
+											</button>
+										</div>
+									</button>
+								))
+							) : (
+								<div className="py-20 text-center text-zinc-300 flex flex-col items-center gap-3">
+									<div className="w-16 h-16 rounded-[2rem] bg-white dark:bg-zinc-900 flex items-center justify-center mb-2">
+										<Search className="w-6 h-6 opacity-10" />
 									</div>
-								</button>
-							))
-						) : (
-							<div className="p-8 text-center text-zinc-400 flex flex-col items-center gap-2">
-								<FileText className="w-8 h-8 opacity-20" />
-								<p className="text-sm">No notes found</p>
-							</div>
-						)}
-					</div>
-
-					<div className="p-2 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 space-y-1">
-						<div className="flex items-center justify-between p-2 mb-1">
-							<div className="flex items-center gap-2">
-								<Activity
-									className={`w-3.5 h-3.5 ${mcpStatus.connected ? "text-green-500" : "text-zinc-400"}`}
-								/>
-								<span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-									MCP Status
-								</span>
-							</div>
-
-							<div className="flex items-center gap-1.5">
-								<div
-									className={`w-1.5 h-1.5 rounded-full ${mcpStatus.connected ? "bg-green-500 animate-pulse" : "bg-zinc-300 dark:bg-zinc-700"}`}
-								/>
-								<span className="text-[10px] font-medium text-zinc-500">
-									{mcpStatus.connected ? "Connected" : "Disconnected"}
-								</span>
-							</div>
+									<p className="text-xs font-bold tracking-widest uppercase opacity-40">No Results</p>
+								</div>
+							)}
 						</div>
 
-						<Link
-							href="/graph-notes"
-							onClick={() => setIsSidebarOpen(false)}
-							className="flex items-center gap-3 w-full p-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-sm font-medium"
-						>
-							<Network className="w-4 h-4" />
-							Graph View
-						</Link>
+						<div className="pt-6 mt-6 border-t border-zinc-100 dark:border-zinc-900 space-y-3">
+							<div className="flex items-center justify-between px-3 py-1">
+								<div className="flex items-center gap-2">
+									<div className={`w-2 h-2 rounded-full ${mcpStatus.connected ? "bg-green-500" : "bg-zinc-200 dark:bg-zinc-800"}`} />
+									<span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">MCP Status</span>
+								</div>
+								<span className={`text-[10px] font-bold ${mcpStatus.connected ? "text-green-600 dark:text-green-400" : "text-zinc-400"}`}>
+									{mcpStatus.connected ? "MCP CONNECTED" : "OFFLINE"}
+								</span>
+							</div>
 
-						<button
-							onClick={() => setShowProfileModal(true)}
-							className="flex items-center gap-3 w-full p-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-sm font-medium text-left"
-						>
-							{user.photoURL ? (
-								<img
-									src={user.photoURL}
-									alt=""
-									className="w-4 h-4 rounded-full"
-								/>
-							) : (
-								<User className="w-4 h-4" />
-							)}
-							<span className="truncate flex-1 text-xs">
-								{user.displayName}
-							</span>
-						</button>
-						<div className="flex gap-2 text-xs my-2 p-2">
-							<p>
-								Built using{" "}
-								<a
-									href="https://buildsaas.com"
-									target="_blank"
-									className="text-indigo-400 hover:underline"
-									rel="noopener noreferrer"
+							<div className="grid grid-cols-2 gap-2">
+								<Link
+									href="/graph-notes"
+									className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-transparent hover:border-zinc-500/20 transition-all text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-500 group shadow-sm"
 								>
-									BuildSaaS
-								</a>
-							</p>
+									<Network className="w-5 h-5 transition-transform group-hover:scale-110" />
+									Map
+								</Link>
+								<button
+									onClick={() => setShowProfileModal(true)}
+									className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-transparent hover:border-zinc-500/20 transition-all text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-500 group shadow-sm"
+								>
+									<Settings className="w-5 h-5 transition-transform group-hover:rotate-90" />
+									Config
+								</button>
+							</div>
 						</div>
 					</div>
 				</aside>
 
 				{/* Main Content */}
-				<main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-zinc-950 relative">
+				<main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-zinc-950 relative overflow-hidden">
 					{/* Mobile Header */}
-					<header className="md:hidden flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 sticky top-0 z-30">
+					<header className="md:hidden flex items-center justify-between p-6 border-b border-zinc-50 dark:border-zinc-900 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-30">
 						<button
 							onClick={() => setIsSidebarOpen(true)}
-							className="p-2 -ml-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+							className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-900 text-zinc-500"
 						>
-							<Menu className="w-4 h-4" />
+							<Menu className="w-5 h-5" />
 						</button>
-						<h1 className="text-lg font-bold tracking-tight">ClawdNote</h1>
+						<h1 className="text-xs font-black tracking-[0.2em] uppercase">Clawd</h1>
 						<button
 							onClick={handleCreateNote}
-							className="p-2 -mr-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+							className="p-3 rounded-2xl bg-zinc-600 text-white shadow-lg shadow-zinc-500/20"
 						>
-							<Plus className="w-4 h-4" />
+							<Plus className="w-5 h-5" />
 						</button>
 					</header>
-					<div className="h-full w-full lg:max-w-5xl mx-auto  dark:border-zinc-800">
+
+					<div className="flex-1 h-full overflow-hidden flex flex-col">
 						{activeNote ? (
-							<TiptapEditor
+							<motion.div 
 								key={activeNote.id}
-								initialNote={activeNote}
-								onUpdate={(updatedNote) => {
-									// Local state is updated via useLiveQuery automatically
-								}}
-							/>
+								initial={{ opacity: 0, x: 20 }}
+								animate={{ opacity: 1, x: 0 }}
+								exit={{ opacity: 0, x: -20 }}
+								transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+								className="h-full flex flex-col"
+							>
+								<TiptapEditor
+									initialNote={activeNote}
+									onUpdate={(updatedNote) => {
+										// Local state is updated via useLiveQuery automatically
+									}}
+								/>
+							</motion.div>
 						) : (
-							<div className="flex-1 h-full flex flex-col items-center justify-center bg-zinc-50/30 dark:bg-zinc-950/10 text-zinc-400">
-								<div className="max-w-md text-center p-8">
-									<div className="w-16 h-16 bg-white dark:bg-zinc-950 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex items-center justify-center mx-auto mb-6">
-										<FileText className="w-8 h-8 text-zinc-300 dark:text-zinc-700" />
+							<div className="flex-1 h-full flex flex-col items-center justify-center p-12 bg-zinc-50/20 dark:bg-zinc-950/20">
+								<div className="relative group cursor-pointer" onClick={handleCreateNote}>
+									<div className="absolute inset-0 bg-zinc-500 rounded-[3rem] blur-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-700" />
+									<div className="relative w-32 h-32 bg-white dark:bg-zinc-900 rounded-[3rem] shadow-2xl border border-zinc-100 dark:border-zinc-800 flex items-center justify-center mb-12 rotate-6 group-hover:rotate-0 transition-all duration-700 ease-out">
+										<FileText className="w-12 h-12 text-zinc-500" />
 									</div>
-									<h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-										Select a note to view
-									</h2>
-									<p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-										Choose a note from the sidebar or create a new one to get
-										started with your ideas.
-									</p>
-									<button
-										onClick={handleCreateNote}
-										className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-									>
-										<Plus className="w-4 h-4" />
-										New Note
-									</button>
 								</div>
+								<h2 className="text-3xl font-black mb-4 tracking-tight">Pure focus.</h2>
+								<p className="text-sm text-zinc-400 dark:text-zinc-500 max-w-[280px] text-center leading-relaxed mb-12 font-medium">
+									Your ideas deserve a clean space. Select a note or start something fresh.
+								</p>
+								<button
+									onClick={handleCreateNote}
+									className="group px-8 py-4 rounded-2xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-black shadow-2xl shadow-zinc-500/10 hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
+								>
+									<Plus className="w-5 h-5 transition-transform group-hover:rotate-90" />
+									Create New Idea
+								</button>
 							</div>
 						)}
 					</div>
@@ -451,7 +423,7 @@ const IndexPage = () => {
 										</div>
 										<button
 											onClick={generateNewApiKey}
-											className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-colors flex items-center gap-2"
+											className="px-4 py-2 bg-zinc-600 text-white text-xs font-bold rounded-xl hover:bg-zinc-700 transition-colors flex items-center gap-2"
 										>
 											<Plus className="w-3.5 h-3.5" />
 											New API Key
@@ -510,7 +482,7 @@ const IndexPage = () => {
 									{/* Claude Config Section */}
 									<div className="space-y-3">
 										<div className="flex items-center gap-2">
-											<Key className="w-4 h-4 text-indigo-500" />
+											<Key className="w-4 h-4 text-zinc-500" />
 											<h4 className="font-bold text-sm">
 												Claude Desktop Config
 											</h4>
@@ -522,7 +494,7 @@ const IndexPage = () => {
 										</p>
 
 										<div className="relative group">
-											<pre className="p-4 rounded-2xl bg-zinc-900 text-indigo-300 text-[10px] font-mono overflow-x-auto border border-zinc-800">
+											<pre className="p-4 rounded-2xl bg-zinc-900 text-zinc-300 text-[10px] font-mono overflow-x-auto border border-zinc-800">
 												{JSON.stringify(
 													getMcpConfig(apiKeys[0]?.key || "YOUR_API_KEY"),
 													null,

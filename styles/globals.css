@@ -478,7 +478,7 @@
 
 /* Force Graph Tooltip */
 .scene-tooltip {
-	background: transparent !important;
+background: transparent !important;
 	border: none !important;
 	box-shadow: none !important;
 	padding: 0 !important;
