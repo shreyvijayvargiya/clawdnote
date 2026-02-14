@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useMemo, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { X, Send, Loader2, User, Bot, Copy, MessageSquare } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import SyntaxHighlighter from "react-syntax-highlighter/dist/cjs/prism";
+import { vscDarkPlus, vs } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { toast } from "sonner";
 
 const ChatSidebar = ({ isOpen, onClose, isDarkMode }) => {
@@ -20,7 +20,7 @@ const ChatSidebar = ({ isOpen, onClose, isDarkMode }) => {
 		}
 	}), []);
 
-	const { messages, input, setInput, handleSubmit, isLoading, error, append } = useChat(chatOptions);
+	const { messages, input, handleInputChange, handleSubmit, isLoading, error, append } = useChat(chatOptions);
 
 	const [localInput, setLocalInput] = useState(input || "");
 
@@ -33,9 +33,8 @@ const ChatSidebar = ({ isOpen, onClose, isDarkMode }) => {
 
 	const handleLocalInputChange = (e) => {
 		const newValue = e.target.value;
-		console.log("Input changed:", newValue);
 		setLocalInput(newValue);
-		setInput(newValue);
+		handleInputChange(e);
 	};
 
 	const onFormSubmit = (e) => {
@@ -150,7 +149,7 @@ const ChatSidebar = ({ isOpen, onClose, isDarkMode }) => {
 										: `${isDarkMode ? "bg-zinc-800/50 border-zinc-800" : "bg-zinc-50 border-zinc-100"} border rounded-tl-none shadow-sm`
 								}`}
 							>
-								<div className="prose prose-zinc dark:prose-invert prose-sm max-w-none prose-p:my-1 prose-pre:bg-zinc-950 prose-pre:p-0 prose-code:text-zinc-500">
+								<div className={`prose prose-zinc dark:prose-invert prose-sm max-w-none prose-p:my-1 prose-pre:bg-transparent prose-pre:p-0 prose-code:text-zinc-500`}>
 									<ReactMarkdown
 										components={{
 											code({ node, inline, className, children, ...props }) {
@@ -158,16 +157,28 @@ const ChatSidebar = ({ isOpen, onClose, isDarkMode }) => {
 												return !inline && match ? (
 													<div className="relative group/code my-2">
 														<SyntaxHighlighter
-															style={vscDarkPlus}
+															style={isDarkMode ? vscDarkPlus : vs}
 															language={match[1]}
 															PreTag="div"
+															customStyle={{
+																margin: 0,
+																padding: "1rem",
+																borderRadius: "0.75rem",
+																fontSize: "0.875rem",
+																border: isDarkMode
+																	? "1px solid #27272a"
+																	: "1px solid #e4e4e7",
+																background: isDarkMode ? "#09090b" : "#f4f4f5",
+															}}
 															{...props}
 														>
 															{String(children).replace(/\n$/, "")}
 														</SyntaxHighlighter>
 														<button
 															onClick={() => copyToClipboard(String(children))}
-															className="absolute top-2 right-2 p-1.5 rounded-xl bg-zinc-800/50 opacity-0 group-hover/code:opacity-100 transition-opacity"
+															className={`absolute top-2 right-2 p-1.5 rounded-xl ${
+																isDarkMode ? "bg-zinc-800/50" : "bg-zinc-200/50"
+															} opacity-0 group-hover/code:opacity-100 transition-opacity`}
 														>
 															<Copy className="w-3.5 h-3.5 text-zinc-400" />
 														</button>

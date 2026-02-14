@@ -151,21 +151,53 @@ const GraphNotesPage = () => {
 			}));
 
 		const links = [];
+		const linkSet = new Set();
 
+		// Add explicit links from notes
+		notes.forEach((note) => {
+			if (note.links && Array.from(note.links).length > 0) {
+				note.links.forEach((targetId) => {
+					const targetIdNum = parseInt(targetId, 10);
+					// Only add if target note exists in filtered nodes
+					if (nodes.find((n) => n.id === targetIdNum)) {
+						const linkId = `${note.id}-${targetIdNum}`;
+						const reverseLinkId = `${targetIdNum}-${note.id}`;
+						
+						if (!linkSet.has(linkId) && !linkSet.has(reverseLinkId)) {
+							links.push({
+								source: note.id,
+								target: targetIdNum,
+								value: 1.0,
+								isExplicit: true,
+							});
+							linkSet.add(linkId);
+						}
+					}
+				});
+			}
+		});
+
+		// Add semantic similarity links
 		for (let i = 0; i < nodes.length; i++) {
 			for (let j = i + 1; j < nodes.length; j++) {
 				const idA = nodes[i].id;
 				const idB = nodes[j].id;
+				const linkId = `${idA}-${idB}`;
+				const reverseLinkId = `${idB}-${idA}`;
+
+				if (linkSet.has(linkId) || linkSet.has(reverseLinkId)) continue;
 
 				if (embeddings[idA] && embeddings[idB]) {
 					const similarity = cosineSimilarity(embeddings[idA], embeddings[idB]);
-					if (similarity > 0.7) {
-						// Threshold for connection
+					if (similarity > 0.75) {
+						// Higher threshold for semantic links if explicit links exist
 						links.push({
 							source: idA,
 							target: idB,
 							value: similarity,
+							isExplicit: false,
 						});
+						linkSet.add(linkId);
 					}
 				}
 			}
@@ -306,6 +338,26 @@ const GraphNotesPage = () => {
 							Active Match
 						</span>
 					</div>
+					<div className="flex items-center gap-2">
+						<div
+							className={`w-4 h-0.5 bg-indigo-500 ${isDarkMode ? "shadow-[0_0_8px_#6366f1]" : ""}`}
+						/>
+						<span
+							className={`text-[10px] font-bold ${isDarkMode ? "text-zinc-500" : "text-zinc-400"} uppercase`}
+						>
+							Direct Link
+						</span>
+					</div>
+					<div className="flex items-center gap-2">
+						<div
+							className={`w-4 h-0.5 bg-indigo-500/30 border-t border-dashed`}
+						/>
+						<span
+							className={`text-[10px] font-bold ${isDarkMode ? "text-zinc-500" : "text-zinc-400"} uppercase`}
+						>
+							Semantic Match
+						</span>
+					</div>
 				</div>
 			</div>
 
@@ -326,15 +378,29 @@ const GraphNotesPage = () => {
             </div>
           `}
 					nodeRelSize={7}
-					linkColor={() =>
-						isDarkMode ? "rgba(99, 102, 241, 0.2)" : "rgba(99, 102, 241, 0.1)"
+					linkColor={(link) =>
+						link.isExplicit
+							? isDarkMode
+								? "rgba(129, 140, 248, 0.6)"
+								: "rgba(79, 70, 229, 0.4)"
+							: isDarkMode
+								? "rgba(99, 102, 241, 0.15)"
+								: "rgba(99, 102, 241, 0.08)"
 					}
-					linkWidth={1.5}
-					linkDirectionalParticles={4}
-					linkDirectionalParticleSpeed={0.006}
-					linkDirectionalParticleWidth={2}
-					linkDirectionalParticleColor={() =>
-						isDarkMode ? "#818cf8" : "#6366f1"
+					linkWidth={(link) => (link.isExplicit ? 2.5 : 1)}
+					linkDirectionalParticles={(link) => (link.isExplicit ? 6 : 2)}
+					linkDirectionalParticleSpeed={(link) =>
+						link.isExplicit ? 0.01 : 0.004
+					}
+					linkDirectionalParticleWidth={(link) => (link.isExplicit ? 3 : 1.5)}
+					linkDirectionalParticleColor={(link) =>
+						link.isExplicit
+							? isDarkMode
+								? "#a5b4fc"
+								: "#4f46e5"
+							: isDarkMode
+								? "#818cf8"
+								: "#6366f1"
 					}
 					onNodeClick={(node) => {
 						router.push(`/?noteId=${node.id}`);

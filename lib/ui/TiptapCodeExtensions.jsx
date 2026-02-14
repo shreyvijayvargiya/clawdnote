@@ -13,8 +13,6 @@ import {
 	TrashIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneLight } from "react-syntax-highlighter/dist/cjs/styles/prism";
 
 // Languages list
 const LANGUAGES = [

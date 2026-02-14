@@ -9,7 +9,29 @@ import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import CodeBlock from "@tiptap/extension-code-block";
+import Link from "@tiptap/extension-link";
+import { Markdown } from "tiptap-markdown";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { lowlight } from "lowlight/lib/core";
+import javascript from "highlight.js/lib/languages/javascript";
+import css from "highlight.js/lib/languages/css";
+import xml from "highlight.js/lib/languages/xml";
+import python from "highlight.js/lib/languages/python";
+import typescript from "highlight.js/lib/languages/typescript";
+import bash from "highlight.js/lib/languages/bash";
+import markdown from "highlight.js/lib/languages/markdown";
+import json from "highlight.js/lib/languages/json";
+
+lowlight.registerLanguage("javascript", javascript);
+lowlight.registerLanguage("css", css);
+lowlight.registerLanguage("xml", xml);
+lowlight.registerLanguage("html", xml);
+lowlight.registerLanguage("python", python);
+lowlight.registerLanguage("typescript", typescript);
+lowlight.registerLanguage("bash", bash);
+lowlight.registerLanguage("markdown", markdown);
+lowlight.registerLanguage("json", json);
+
 import SlashCommand from "../tiptap/slash-command";
 import SlashCommandList from "./SlashCommandList";
 import ChatSidebar from "./ChatSidebar";
@@ -32,6 +54,7 @@ import {
 	Code,
 	Image as ImageIcon,
 	Table as TableIcon,
+	Link as LinkIcon,
 	Info,
 	Plus,
 	MessageSquare,
@@ -53,6 +76,8 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 	const [isChatOpen, setIsChatOpen] = useState(false);
 	const [mediaType, setMediaType] = useState(null); // 'image' or 'table'
 	const [mediaUrl, setMediaUrl] = useState("");
+	const [linkUrl, setLinkUrl] = useState("");
+	const [showLinkModal, setShowLinkModal] = useState(false);
 	const [tableRows, setTableRows] = useState(3);
 	const [tableCols, setTableCols] = useState(3);
 	const fileInputRef = useRef(null);
@@ -77,6 +102,44 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 		setShowMediaModal(false);
 		setMediaUrl("");
 		setMediaType(null);
+	};
+
+	const handleLinkSubmit = () => {
+		if (linkUrl) {
+			// Auto-prepend https:// if protocol is missing
+			let url = linkUrl;
+			if (
+				!url.includes("://") &&
+				!url.startsWith("mailto:") &&
+				!url.startsWith("tel:")
+			) {
+				url = `https://${url}`;
+			}
+
+			const { from, to } = editor.state.selection;
+			const isNoSelection = from === to;
+
+			if (isNoSelection) {
+				// If no selection, insert the link text and apply the link mark
+				editor
+					.chain()
+					.focus()
+					.insertContent(`<a href="${url}">${url}</a> `)
+					.run();
+			} else {
+				// If there is a selection, apply the link mark to it
+				editor
+					.chain()
+					.focus()
+					.extendMarkRange("link")
+					.setLink({ href: url })
+					.run();
+			}
+		} else {
+			editor.chain().focus().extendMarkRange("link").unsetLink().run();
+		}
+		setShowLinkModal(false);
+		setLinkUrl("");
 	};
 
 	const handleFileUpload = (e) => {
@@ -150,6 +213,17 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 					icon: <Code className="w-4 h-4" />,
 					command: ({ editor, range }) => {
 						editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
+					},
+				},
+				{
+					title: "Link",
+					description: "Add a link to selected text",
+					icon: <LinkIcon className="w-4 h-4" />,
+					command: ({ editor, range }) => {
+						editor.chain().focus().deleteRange(range).run();
+						const previousUrl = editor.getAttributes("link").href;
+						setLinkUrl(previousUrl || "");
+						setShowLinkModal(true);
 					},
 				},
 				{
@@ -241,45 +315,25 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 		},
 	};
 
-	const editor = useEditor({
-		extensions: [
-			StarterKit,
-			Placeholder.configure({
-				placeholder: "Type / for commands...",
-			}),
-			Image,
-			Table.configure({
-				resizable: true,
-			}),
-			TableRow,
-			TableHeader,
-			TableCell,
-			TaskList,
-			TaskItem.configure({
-				nested: true,
-			}),
-			CodeBlock,
-			SlashCommand.configure({
-				suggestion,
-			}),
-		],
-		content: initialNote.content || "",
-		onUpdate: ({ editor }) => {
-			debouncedUpdate(editor.getHTML());
-		},
-	});
-
-	const [title, setTitle] = useState(initialNote.title || "Untitled");
+	const [title, setTitle] = useState(initialNote.title || "Untitled Note");
 	const [syncStatus, setSyncStatus] = useState("local");
 
+	// Use refs to avoid stale closures in debounced function
+	const titleRef = useRef(title);
+	const contentRef = useRef(initialNote.content || "");
+
+	useEffect(() => {
+		titleRef.current = title;
+	}, [title]);
+
 	const debouncedUpdate = useRef(
-		debounce(async (content, currentTitle) => {
+		debounce(async () => {
 			setIsSaving(true);
 			try {
 				const savedNote = await noteService.saveNote(user.uid, {
 					...initialNote,
-					title: currentTitle || title,
-					content,
+					title: titleRef.current,
+					content: contentRef.current,
 				});
 				if (onUpdate) onUpdate(savedNote);
 			} catch (error) {
@@ -300,8 +354,120 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 	const handleTitleChange = (e) => {
 		const newTitle = e.target.value;
 		setTitle(newTitle);
-		debouncedUpdate(editor.getHTML(), newTitle);
+		titleRef.current = newTitle;
+		debouncedUpdate();
 	};
+
+	const editor = useEditor({
+		extensions: [
+			StarterKit,
+			Placeholder.configure({
+				placeholder: "Type / for commands...",
+			}),
+			Image,
+			Table.configure({
+				resizable: true,
+			}),
+			TableRow,
+			TableHeader,
+			TableCell,
+			TaskList,
+			TaskItem.configure({
+				nested: true,
+			}),
+			CodeBlockLowlight.configure({
+				lowlight,
+			}),
+			Link.configure({
+				openOnClick: true,
+				autolink: true,
+				defaultProtocol: "https",
+				protocols: ["http", "https"],
+				isAllowedUri: (url, ctx) => {
+					try {
+						// construct URL
+						const parsedUrl = url.includes(":")
+							? new URL(url)
+							: new URL(`${ctx.defaultProtocol}://${url}`);
+
+						// use default validation
+						if (!ctx.defaultValidate(parsedUrl.href)) {
+							return false;
+						}
+
+						// disallowed protocols
+						const disallowedProtocols = ["ftp", "file", "mailto"];
+						const protocol = parsedUrl.protocol.replace(":", "");
+
+						if (disallowedProtocols.includes(protocol)) {
+							return false;
+						}
+
+						// only allow protocols specified in ctx.protocols
+						const allowedProtocols = ctx.protocols.map((p) =>
+							typeof p === "string" ? p : p.scheme,
+						);
+
+						if (!allowedProtocols.includes(protocol)) {
+							return false;
+						}
+
+						// disallowed domains
+						const disallowedDomains = [
+							"example-phishing.com",
+							"malicious-site.net",
+						];
+						const domain = parsedUrl.hostname;
+
+						if (disallowedDomains.includes(domain)) {
+							return false;
+						}
+
+						// all checks have passed
+						return true;
+					} catch {
+						return false;
+					}
+				},
+				shouldAutoLink: (url) => {
+					try {
+						// construct URL
+						const parsedUrl = url.includes(":")
+							? new URL(url)
+							: new URL(`https://${url}`);
+
+						// only auto-link if the domain is not in the disallowed list
+						const disallowedDomains = [
+							"example-no-autolink.com",
+							"another-no-autolink.com",
+						];
+						const domain = parsedUrl.hostname;
+
+						return !disallowedDomains.includes(domain);
+					} catch {
+						return false;
+					}
+				},
+				HTMLAttributes: {
+					class: "text-indigo-600 dark:text-indigo-400 underline decoration-indigo-400/50 underline-offset-4 cursor-pointer font-medium transition-all hover:text-indigo-800 dark:hover:text-indigo-200",
+				},
+			}),
+			Markdown.configure({
+				html: true,
+				tightLists: true,
+				bulletListMarker: "-",
+				linkify: true,
+			}),
+			SlashCommand.configure({
+				suggestion,
+			}),
+		],
+		content: initialNote.content || "",
+		onUpdate: ({ editor }) => {
+			contentRef.current = editor.getHTML();
+			debouncedUpdate();
+		},
+	});
 
 	// Voice Recording Logic
 	useEffect(() => {
@@ -402,12 +568,6 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 					className={`text-3xl font-bold bg-transparent border-none outline-none w-full max-w-3xl ${isDarkMode ? "text-zinc-100 placeholder:text-zinc-800" : "text-zinc-900 placeholder:text-zinc-200"}`}
 				/>
 				<div className="flex items-center gap-2">
-					<div className="flex items-center gap-2 mr-4">
-						<div className="w-2 h-2 rounded-full bg-green-500" />
-						<span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-							Local Storage
-						</span>
-					</div>
 					{isSaving && (
 						<Loader2 className="w-4 h-4 animate-spin text-zinc-400" />
 					)}
@@ -477,6 +637,17 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 				>
 					<Italic className="w-4 h-4" />
 				</ToolbarButton>
+				<ToolbarButton
+					active={editor.isActive("link")}
+					onClick={() => {
+						const previousUrl = editor.getAttributes("link").href;
+						setLinkUrl(previousUrl || "");
+						setShowLinkModal(true);
+					}}
+					isDarkMode={isDarkMode}
+				>
+					<LinkIcon className="w-4 h-4" />
+				</ToolbarButton>
 				<div
 					className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`}
 				/>
@@ -542,8 +713,20 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 
 			{/* Editor Content */}
 			<div
-				className={`flex-1 overflow-y-auto px-8 py-8 prose ${isDarkMode ? "prose-invert prose-zinc" : "prose-zinc"} max-w-none prose-p:my-1`}
+				className={`flex-1 overflow-y-auto px-8 py-8 prose ${isDarkMode ? "prose-invert prose-zinc" : "prose-zinc"} max-w-none prose-p:my-1 prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-a:underline decoration-indigo-400/30 underline-offset-4 hover:prose-a:text-indigo-700 dark:hover:prose-a:text-indigo-300`}
 			>
+				<style>{`
+					.ProseMirror a {
+						color: ${isDarkMode ? "#818cf8" : "#4f46e5"} !important;
+						text-decoration: underline !important;
+						text-decoration-color: ${isDarkMode ? "rgba(129, 140, 248, 0.4)" : "rgba(79, 70, 229, 0.4)"} !important;
+						text-underline-offset: 4px !important;
+						font-weight: 500 !important;
+					}
+					.ProseMirror a:hover {
+						color: ${isDarkMode ? "#a5b4fc" : "#4338ca"} !important;
+					}
+				`}</style>
 				<EditorContent editor={editor} />
 			</div>
 
@@ -719,6 +902,56 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 									className={`px-6 py-2 rounded-xl ${isDarkMode ? "bg-zinc-100 text-zinc-900 hover:bg-zinc-200" : "bg-zinc-900 text-white hover:bg-zinc-800"} text-sm font-medium transition-colors`}
 								>
 									Insert {mediaType}
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Link Modal */}
+			{showLinkModal && (
+				<div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/20 dark:bg-black/40 backdrop-blur-sm">
+					<div
+						className={`w-full max-w-md ${isDarkMode ? "bg-zinc-900 border-zinc-800" : "bg-white border-zinc-200"} border shadow-2xl rounded-3xl overflow-hidden`}
+					>
+						<div className="p-6">
+							<h3 className="text-lg font-bold mb-4">Edit Link</h3>
+							<div className="space-y-4">
+								<div className="space-y-2">
+									<label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+										URL
+									</label>
+									<input
+										type="text"
+										value={linkUrl}
+										onChange={(e) => setLinkUrl(e.target.value)}
+										placeholder="https://example.com"
+										className={`w-full px-4 py-2 rounded-xl text-sm border ${isDarkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-50 border-zinc-200"} focus:ring-2 focus:ring-zinc-500 outline-none`}
+										autoFocus
+										onKeyDown={(e) => {
+											if (e.key === "Enter") handleLinkSubmit();
+											if (e.key === "Escape") setShowLinkModal(false);
+										}}
+									/>
+								</div>
+							</div>
+
+							<div className="flex items-center justify-end gap-2 mt-8">
+								<button
+									onClick={() => {
+										setShowLinkModal(false);
+										setLinkUrl("");
+									}}
+									className={`px-4 py-2 rounded-xl text-sm font-medium ${isDarkMode ? "hover:bg-zinc-800" : "hover:bg-zinc-100"} transition-colors`}
+								>
+									Cancel
+								</button>
+								<button
+									onClick={handleLinkSubmit}
+									className={`px-6 py-2 rounded-xl ${isDarkMode ? "bg-zinc-100 text-zinc-900 hover:bg-zinc-200" : "bg-zinc-900 text-white hover:bg-zinc-800"} text-sm font-medium transition-colors`}
+								>
+									{editor.isActive("link") ? "Update" : "Set Link"}
 								</button>
 							</div>
 						</div>
