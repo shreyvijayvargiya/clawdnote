@@ -20,82 +20,82 @@ import {
 	Trash2,
 	Trash,
 	RefreshCw,
+	Activity,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { toast, Toaster } from "sonner";
-import { auth } from "../lib/config/firebase";
 import { useLiveQuery } from "dexie-react-hooks";
 import { noteService } from "../lib/db/noteService";
 import { db as localDb } from "../lib/db/localDb";
-import {
-	onAuthStateChange,
-	signInWithGoogle,
-	signOutUser,
-} from "../lib/api/auth";
-import { generateApiKey, getUserApiKeys, revokeApiKey } from "../lib/api/keys";
-import TiptapEditor from "../app/components/TiptapEditor";
+import TiptapEditor from "../lib/components/TiptapEditor";
 import { useTheme } from "../lib/context/ThemeContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { v4 as uuidv4 } from "uuid";
 
 const IndexPage = () => {
 	const { isDarkMode, toggleTheme } = useTheme();
-	const [user, setUser] = useState(null);
-	const [isAuthLoading, setIsAuthLoading] = useState(true);
+	// Use a mock stable user for initial render to avoid hydration mismatch
+	const [user, setUser] = useState({
+		uid: "local-user",
+		displayName: "Local User",
+		photoURL: null,
+	});
+	const [isAuthLoading, setIsAuthLoading] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [activeNoteId, setActiveNoteId] = useState(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 	const [showProfileModal, setShowProfileModal] = useState(false);
+	const [systemInfo, setSystemInfo] = useState({ workspacePath: "", connectScriptPath: "" });
 
-	const [apiKeys, setApiKeys] = useState([]);
-	const [isGeneratingKey, setIsGeneratingKey] = useState(false);
+	const [mcpStatus, setMcpStatus] = useState({ connected: false });
+	const [isFetchingMcpStatus, setIsFetchingMcpStatus] = useState(false);
 
 	const router = useRouter();
 
-	// Auth State
-	useEffect(() => {
-		const unsubscribe = onAuthStateChange((u) => {
-			setUser(u);
-			setIsAuthLoading(false);
-		});
-		return () => unsubscribe();
-	}, []);
+	// Live query for API keys
+	const apiKeys = useLiveQuery(() => localDb.apiKeys.toArray()) || [];
 
-	// Fetch API Keys when modal opens
-	useEffect(() => {
-		if (showProfileModal && user) {
-			getUserApiKeys(user.uid).then(setApiKeys);
-		}
-	}, [showProfileModal, user]);
-
-	const handleGenerateKey = async () => {
-		if (!user) return;
-		setIsGeneratingKey(true);
+	// Fetch MCP Status
+	const fetchMcpStatus = async () => {
+		setIsFetchingMcpStatus(true);
 		try {
-			await generateApiKey(user.uid);
-			const keys = await getUserApiKeys(user.uid);
-			setApiKeys(keys);
-			toast.success("New API key generated!");
+			const res = await fetch("/api/mcp-status");
+			const data = await res.json();
+			setMcpStatus(data);
 		} catch (error) {
-			toast.error("Failed to generate key");
+			console.error("Failed to fetch MCP status:", error);
 		} finally {
-			setIsGeneratingKey(false);
+			setIsFetchingMcpStatus(false);
 		}
 	};
 
-	const handleRevokeKey = async (id) => {
+	// Fetch System Info (Path)
+	const fetchSystemInfo = async () => {
 		try {
-			await revokeApiKey(id);
-			setApiKeys(apiKeys.filter((k) => k.id !== id));
-			toast.success("API key revoked");
+			const res = await fetch("/api/system-info");
+			const data = await res.json();
+			setSystemInfo(data);
 		} catch (error) {
-			toast.error("Failed to revoke key");
+			console.error("Failed to fetch system info:", error);
 		}
 	};
 
-	const copyToClipboard = (text) => {
-		navigator.clipboard.writeText(text);
-		toast.success("Copied to clipboard!");
-	};
+	useEffect(() => {
+		fetchMcpStatus();
+		fetchSystemInfo();
+		const interval = setInterval(fetchMcpStatus, 10000); // Check every 10s
+
+		// Randomize user identity on client-side only
+		const seed = Math.random();
+		setUser({
+			uid: "local-user",
+			displayName: "Random User " + Math.floor(seed * 1000),
+			photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`,
+		});
+
+		return () => clearInterval(interval);
+	}, []);
 
 	// Fetch Notes Locally with useLiveQuery for real-time updates
 	const notes = useLiveQuery(
@@ -103,14 +103,7 @@ const IndexPage = () => {
 		[user?.uid]
 	) || [];
 
-	const isNotesLoading = notes.length === 0 && user;
-
-	// Background Sync Effect
-	useEffect(() => {
-		if (user) {
-			noteService.syncAllWithCloud(user.uid);
-		}
-	}, [user]);
+	const isNotesLoading = notes.length === 0 && !isAuthLoading && user;
 
 	// Filter Notes
 	const filteredNotes = useMemo(() => {
@@ -123,10 +116,6 @@ const IndexPage = () => {
 
 	// Actions
 	const handleCreateNote = async () => {
-		if (!user) {
-			toast.error("Please login to create notes");
-			return;
-		}
 		try {
 			const newNote = await noteService.saveNote(user.uid, {
 				title: "Untitled Note",
@@ -151,28 +140,45 @@ const IndexPage = () => {
 		}
 	};
 
+	const generateNewApiKey = async () => {
+		const newKey = {
+			key: `sk_${uuidv4().replace(/-/g, "")}`,
+			name: `Key ${apiKeys.length + 1}`,
+			createdAt: Date.now()
+		};
+		await localDb.apiKeys.add(newKey);
+		toast.success("New API Key generated");
+	};
+
+	const deleteApiKey = async (id) => {
+		await localDb.apiKeys.delete(id);
+		toast.success("API Key deleted");
+	};
+
 	const activeNote = useMemo(
 		() => notes.find((n) => n.id === activeNoteId),
 		[notes, activeNoteId],
 	);
 
-	const handleLogin = async () => {
-		try {
-			await signInWithGoogle();
-			toast.success("Logged in successfully!");
-		} catch (err) {
-			toast.error("Login failed");
-		}
+	const copyToClipboard = (text) => {
+		navigator.clipboard.writeText(text);
+		toast.success("Copied to clipboard!");
 	};
 
-	const handleLogout = async () => {
-		try {
-			await signOutUser();
-			toast.success("Logged out");
-		} catch (err) {
-			toast.error("Logout failed");
-		}
-	};
+	const getMcpConfig = (apiKey = "YOUR_API_KEY") => ({
+		mcpServers: {
+			clawdnote: {
+				command: "node",
+				args: [
+					systemInfo.connectScriptPath || "/path/to/clawdnote/mcp-server/connect.js",
+				],
+				env: {
+					CLAWDNOTE_API_KEY: apiKey,
+					CLAWDNOTE_URL: "http://localhost:3000",
+				},
+			},
+		},
+	});
 
 	if (isAuthLoading) {
 		return (
@@ -306,18 +312,20 @@ const IndexPage = () => {
 				</div>
 
 				<div className="p-2 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-1">
-					<button
-						onClick={() => {
-							if (user) {
-								noteService.syncAllWithCloud(user.uid);
-								toast.info("Syncing with cloud...");
-							}
-						}}
-						className="flex items-center gap-3 w-full p-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-sm font-medium"
-					>
-						<RefreshCw className="w-4 h-4" />
-						Sync Now
-					</button>
+					<div className="flex items-center justify-between p-2 mb-1">
+						<div className="flex items-center gap-2">
+							<Activity className={`w-3.5 h-3.5 ${mcpStatus.connected ? "text-green-500" : "text-zinc-400"}`} />
+							<span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+								MCP Status
+							</span>
+						</div>
+						<div className="flex items-center gap-1.5">
+							<div className={`w-1.5 h-1.5 rounded-full ${mcpStatus.connected ? "bg-green-500 animate-pulse" : "bg-zinc-300 dark:bg-zinc-700"}`} />
+							<span className="text-[10px] font-medium text-zinc-500">
+								{mcpStatus.connected ? "Connected" : "Disconnected"}
+							</span>
+						</div>
+					</div>
 
 					<Link
 						href="/graph-notes"
@@ -328,39 +336,23 @@ const IndexPage = () => {
 						Graph View
 					</Link>
 
-					{user ? (
-						<button
-							onClick={() => {
-								setShowProfileModal(true);
-								setIsSidebarOpen(false);
-							}}
-							className="flex items-center gap-3 w-full p-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-sm font-medium text-left"
-						>
-							{user.photoURL ? (
-								<img
-									src={user.photoURL}
-									alt=""
-									className="w-6 h-6 rounded-full"
-								/>
-							) : (
-								<User className="w-4 h-4" />
-							)}
-							<span className="truncate flex-1">
-								{user.displayName || user.email}
-							</span>
-						</button>
-					) : (
-						<button
-							onClick={() => {
-								handleLogin();
-								setIsSidebarOpen(false);
-							}}
-							className="flex items-center justify-center gap-2 w-full p-1.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors text-sm font-medium"
-						>
+					<button 
+						onClick={() => setShowProfileModal(true)}
+						className="flex items-center gap-3 w-full p-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-sm font-medium text-left"
+					>
+						{user.photoURL ? (
+							<img
+								src={user.photoURL}
+								alt=""
+								className="w-6 h-6 rounded-full"
+							/>
+						) : (
 							<User className="w-4 h-4" />
-							Login with Google
-						</button>
-					)}
+						)}
+						<span className="truncate flex-1 text-xs">
+							{user.displayName}
+						</span>
+					</button>
 				</div>
 			</aside>
 
@@ -415,185 +407,129 @@ const IndexPage = () => {
 				)}
 			</main>
 
-			{/* User Modal */}
-			{showProfileModal && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 dark:bg-black/40 backdrop-blur-sm">
-					<div className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl shadow-xl border border-zinc-100 dark:border-zinc-800 overflow-hidden">
-						<div className="flex flex-col">
-							{/* Header */}
-							<div className="p-2 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-								<h3 className="p-2">Profile Settings</h3>
-								<button
-									onClick={() => setShowProfileModal(false)}
-									className="p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800"
-								>
-									<X className="w-4 h-4" />
-								</button>
-							</div>
-
-							<div className="p-6 space-y-8 max-h-[70vh] overflow-y-auto">
-								{/* User Info */}
-								<div className="flex items-center gap-4">
-									<div className="relative">
-										{user.photoURL ? (
-											<img
-												src={user.photoURL}
-												alt=""
-												className="w-16 h-16 rounded-full ring-4 ring-zinc-50 dark:ring-zinc-800"
-											/>
-										) : (
-											<div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center ring-4 ring-zinc-50 dark:ring-zinc-800">
-												<User className="w-8 h-8 text-zinc-300" />
-											</div>
-										)}
-									</div>
-									<div>
-										<h4 className="font-bold text-lg">{user.displayName}</h4>
-										<p className="text-sm text-zinc-500">{user.email}</p>
-									</div>
+			{/* MCP Config Modal */}
+			<AnimatePresence>
+				{showProfileModal && (
+					<div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/20 dark:bg-black/40 backdrop-blur-sm">
+						<motion.div 
+							initial={{ opacity: 0, scale: 0.95 }}
+							animate={{ opacity: 1, scale: 1 }}
+							exit={{ opacity: 0, scale: 0.95 }}
+							className="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-3xl shadow-xl border border-zinc-100 dark:border-zinc-800 overflow-hidden"
+						>
+							<div className="flex flex-col">
+								<div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+									<h3 className="font-bold">MCP Configuration</h3>
+									<button
+										onClick={() => setShowProfileModal(false)}
+										className="p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800"
+									>
+										<X className="w-4 h-4" />
+									</button>
 								</div>
 
-								{/* Claude Integration */}
-								<div className="space-y-2">
-									<div className="flex items-center gap-1">
-										<div className="p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800">
-											<Key className="w-4 h-4" />
+								<div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+									{/* User Section */}
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-4">
+											{user.photoURL ? (
+												<img src={user.photoURL} className="w-12 h-12 rounded-full ring-2 ring-zinc-100 dark:ring-zinc-800" />
+											) : (
+												<div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+													<User className="w-6 h-6 text-zinc-400" />
+												</div>
+											)}
+											<div>
+												<h4 className="font-bold">{user.displayName}</h4>
+												<p className="text-xs text-zinc-500">Local Data Only</p>
+											</div>
 										</div>
-										<h4 className="font-bold">Claude Integration (MCP)</h4>
+										<button
+											onClick={generateNewApiKey}
+											className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-colors flex items-center gap-2"
+										>
+											<Plus className="w-3.5 h-3.5" />
+											New API Key
+										</button>
 									</div>
 
-									<p className="text-xs text-zinc-500 leading-relaxed">
-										Connect your notes to Claude Desktop to search, create, and
-										manage your notes directly from AI conversations.
-									</p>
-
+									{/* API Keys List */}
 									<div className="space-y-3">
-										{apiKeys.length > 0 ? (
-											apiKeys.map((k) => (
-												<div
-													key={k.id}
-													className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 flex items-center justify-between"
-												>
-													<code className="text-xs font-mono text-zinc-600 dark:text-zinc-400">
-														{k.key.substring(0, 10)}********************
-													</code>
-													<div className="flex items-center gap-2">
-														<button
-															onClick={() => copyToClipboard(k.key)}
-															className="p-2 rounded-xl hover:bg-white dark:hover:bg-zinc-800 transition-colors text-zinc-500"
-															title="Copy Key"
-														>
-															<Copy className="w-4 h-4" />
-														</button>
-														<button
-															onClick={() => handleRevokeKey(k.id)}
-															className="p-2 rounded-xl hover:bg-white dark:hover:bg-zinc-800 transition-colors text-red-500"
-															title="Revoke Key"
-														>
-															<Trash2 className="w-4 h-4" />
-														</button>
-													</div>
-												</div>
-											))
+										<h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500">Active API Keys</h4>
+										{apiKeys.length === 0 ? (
+											<div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-dashed border-zinc-200 dark:border-zinc-700 text-center">
+												<p className="text-xs text-zinc-400 italic">No API keys generated yet.</p>
+											</div>
 										) : (
-											<button
-												onClick={handleGenerateKey}
-												disabled={isGeneratingKey}
-												className="w-full p-4 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-300 transition-all flex flex-col items-center gap-2"
-											>
-												{isGeneratingKey ? (
-													<Loader2 className="w-4 h-4 animate-spin" />
-												) : (
-													<>
-														<Plus className="w-4 h-4" />
-														<span className="text-sm font-medium">
-															Generate API Key for Claude
-														</span>
-													</>
-												)}
-											</button>
-										)}
-
-										{apiKeys.length > 0 && (
-											<div className="relative group">
-												<div className="p-4 rounded-2xl bg-zinc-100 dark:bg-zinc-800/50 text-zinc-900 dark:text-zinc-100 text-[11px] leading-relaxed font-mono overflow-x-auto">
-													<p> &#123;</p>
-													<p>&nbsp;&nbsp;"mcpServers": &#123;</p>
-													<p>&nbsp;&nbsp;&nbsp;&nbsp;"clawdnote": &#123;</p>
-													<p>
-														&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"command":
-														"/opt/homebrew/bin/node",
-													</p>
-													<p>
-														&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"args":
-														["/Users/shreyvijayvargiya/Desktop/project/clawdnote/mcp-server/connect.js"],
-													</p>
-													<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"env": &#123;</p>
-													<p>
-														&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"CLAWDNOTE_API_KEY": "
-														{apiKeys[0].key}",
-													</p>
-													<p>
-														&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"CLAWDNOTE_URL":
-														"http://localhost:3000"
-													</p>
-													<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#125;</p>
-													<p>&nbsp;&nbsp;&nbsp;&nbsp;&#125;</p>
-													<p>&nbsp;&nbsp;&#125;</p>
-													<p>&#125;</p>
-												</div>
-												<button
-													onClick={() => {
-														const config = {
-															mcpServers: {
-																clawdnote: {
-																	command: "/opt/homebrew/bin/node",
-																	args: [
-																		"/Users/shreyvijayvargiya/Desktop/project/clawdnote/mcp-server/connect.js",
-																	],
-																	env: {
-																		CLAWDNOTE_API_KEY: apiKeys[0].key,
-																		CLAWDNOTE_URL: "http://localhost:3000",
-																	},
-																},
-															},
-														};
-														copyToClipboard(JSON.stringify(config, null, 2));
-													}}
-													className="absolute top-3 right-3 p-2 rounded-xl bg-white/50 dark:bg-zinc-900/50 hover:bg-white dark:hover:bg-zinc-900 transition-all text-zinc-500 opacity-0 group-hover:opacity-100 shadow-sm border border-zinc-200 dark:border-zinc-700"
-													title="Copy Config"
-												>
-													<Copy className="w-3.5 h-3.5" />
-												</button>
+											<div className="grid gap-2">
+												{apiKeys.map((k) => (
+													<div key={k.id} className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+														<div className="flex flex-col gap-0.5">
+															<span className="text-[10px] font-bold text-zinc-400 uppercase">{k.name}</span>
+															<code className="text-xs font-mono">{k.key.substring(0, 8)}...{k.key.substring(k.key.length - 4)}</code>
+														</div>
+														<div className="flex items-center gap-1">
+															<button
+																onClick={() => copyToClipboard(k.key)}
+																className="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-700 text-zinc-500"
+																title="Copy Key"
+															>
+																<Copy className="w-3.5 h-3.5" />
+															</button>
+															<button
+																onClick={() => deleteApiKey(k.id)}
+																className="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-700 text-red-500"
+																title="Delete Key"
+															>
+																<Trash2 className="w-3.5 h-3.5" />
+															</button>
+														</div>
+													</div>
+												))}
 											</div>
 										)}
 									</div>
+
+									{/* Claude Config Section */}
+									<div className="space-y-3">
+										<div className="flex items-center gap-2">
+											<Key className="w-4 h-4 text-indigo-500" />
+											<h4 className="font-bold text-sm">Claude Desktop Config</h4>
+										</div>
+										<p className="text-xs text-zinc-500 leading-relaxed">
+											Copy this configuration to your <code>claude_desktop_config.json</code> to connect Claude to your local notes.
+										</p>
+										
+										<div className="relative group">
+											<pre className="p-4 rounded-2xl bg-zinc-900 text-indigo-300 text-[10px] font-mono overflow-x-auto border border-zinc-800">
+												{JSON.stringify(getMcpConfig(apiKeys[0]?.key || "YOUR_API_KEY"), null, 2)}
+											</pre>
+											<button
+												onClick={() => copyToClipboard(JSON.stringify(getMcpConfig(apiKeys[0]?.key || "YOUR_API_KEY"), null, 2))}
+												className="absolute top-3 right-3 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-all"
+											>
+												<Copy className="w-3.5 h-3.5" />
+											</button>
+										</div>
+										<p className="text-[10px] text-zinc-400 italic">
+											Note: Make sure <code>node</code> is in your system path.
+										</p>
+									</div>
+								</div>
+
+								<div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
+									<button
+										onClick={() => setShowProfileModal(false)}
+										className="px-6 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-bold"
+									>
+										Done
+									</button>
 								</div>
 							</div>
-
-							{/* Footer */}
-							<div className="p-6 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-								<button
-									onClick={() => {
-										handleLogout();
-										setShowProfileModal(false);
-									}}
-									className="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors text-sm font-semibold flex items-center justify-center gap-2"
-								>
-									<LogOut className="w-4 h-4" />
-									Sign Out
-								</button>
-								<button
-									onClick={() => setShowProfileModal(false)}
-									className="px-6 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 transition-colors text-sm font-semibold"
-								>
-									Close
-								</button>
-							</div>
-						</div>
+						</motion.div>
 					</div>
-				</div>
-			)}
+				)}
+			</AnimatePresence>
 		</div>
 	);
 };

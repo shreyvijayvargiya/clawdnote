@@ -22,7 +22,7 @@ const ChatSidebar = ({ isOpen, onClose, isDarkMode }) => {
 
 	const { messages, input, setInput, handleSubmit, isLoading, error, append } = useChat(chatOptions);
 
-	const [localInput, setLocalInput] = useState("");
+	const [localInput, setLocalInput] = useState(input || "");
 
 	// Sync local input with useChat input if it's cleared from outside (e.g. on submit)
 	useEffect(() => {
@@ -33,6 +33,7 @@ const ChatSidebar = ({ isOpen, onClose, isDarkMode }) => {
 
 	const handleLocalInputChange = (e) => {
 		const newValue = e.target.value;
+		console.log("Input changed:", newValue);
 		setLocalInput(newValue);
 		setInput(newValue);
 	};
@@ -52,6 +53,15 @@ const ChatSidebar = ({ isOpen, onClose, isDarkMode }) => {
 	};
 
 	const scrollRef = useRef(null);
+	const textareaRef = useRef(null);
+
+	// Auto-resize textarea
+	useEffect(() => {
+		if (textareaRef.current) {
+			textareaRef.current.style.height = "auto";
+			textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+		}
+	}, [localInput]);
 
 	useEffect(() => {
 		if (scrollRef.current) {
@@ -220,6 +230,7 @@ const ChatSidebar = ({ isOpen, onClose, isDarkMode }) => {
 			>
 				<form onSubmit={onFormSubmit} className="relative">
 					<textarea
+						ref={textareaRef}
 						value={localInput}
 						onChange={handleLocalInputChange}
 						placeholder="Type your message..."
@@ -230,7 +241,7 @@ const ChatSidebar = ({ isOpen, onClose, isDarkMode }) => {
 								onFormSubmit(e);
 							}
 						}}
-						className={`w-full pl-4 pr-12 py-3 rounded-2xl text-sm border resize-none focus:ring-2 focus:ring-zinc-500 outline-none transition-all ${isDarkMode ? "bg-zinc-800 border-zinc-700 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}`}
+						className={`w-full pl-4 pr-12 py-3 rounded-2xl text-sm border resize-none focus:ring-2 focus:ring-zinc-500 outline-none transition-all max-h-32 ${isDarkMode ? "bg-zinc-800 border-zinc-700 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}`}
 					/>
 					<button
 						type="submit"

@@ -10,7 +10,7 @@ import TableHeader from "@tiptap/extension-table-header";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import CodeBlock from "@tiptap/extension-code-block";
-import SlashCommand from "../../lib/tiptap/slash-command";
+import SlashCommand from "../tiptap/slash-command";
 import SlashCommandList from "./SlashCommandList";
 import ChatSidebar from "./ChatSidebar";
 import tippy from "tippy.js";
@@ -38,14 +38,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { debounce } from "lodash";
-import { useTheme } from "../../lib/context/ThemeContext";
+import { useTheme } from "../context/ThemeContext";
 
-import { noteService } from "../../lib/db/noteService";
-import { auth } from "../../lib/config/firebase";
+import { noteService } from "../db/noteService";
 
 const TiptapEditor = ({ initialNote, onUpdate }) => {
 	const { isDarkMode } = useTheme();
-	const user = auth.currentUser;
+	const user = { uid: "local-user" }; // Mock local user
 	const [isRecording, setIsRecording] = useState(false);
 	const [spokenText, setSpokenText] = useState("");
 	const [isProcessing, setIsProcessing] = useState(false);
@@ -271,11 +270,10 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 	});
 
 	const [title, setTitle] = useState(initialNote.title || "Untitled");
-	const [syncStatus, setSyncStatus] = useState(initialNote.isSynced ? "synced" : "unsynced");
+	const [syncStatus, setSyncStatus] = useState("local");
 
 	const debouncedUpdate = useRef(
 		debounce(async (content, currentTitle) => {
-			if (!user) return;
 			setIsSaving(true);
 			try {
 				const savedNote = await noteService.saveNote(user.uid, {
@@ -283,7 +281,6 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 					title: currentTitle || title,
 					content,
 				});
-				setSyncStatus(savedNote.isSynced ? "synced" : "unsynced");
 				if (onUpdate) onUpdate(savedNote);
 			} catch (error) {
 				console.error("Auto-save failed:", error);
@@ -406,11 +403,9 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 				/>
 				<div className="flex items-center gap-2">
 					<div className="flex items-center gap-2 mr-4">
-						<div className={`w-2 h-2 rounded-full ${
-							syncStatus === "synced" ? "bg-green-500" : "bg-amber-500 animate-pulse"
-						}`} />
+						<div className="w-2 h-2 rounded-full bg-green-500" />
 						<span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-							{syncStatus === "synced" ? "Synced" : "Local Only"}
+							Local Storage
 						</span>
 					</div>
 					{isSaving && (

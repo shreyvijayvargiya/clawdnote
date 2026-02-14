@@ -2,13 +2,8 @@ import React from "react";
 import { useRouter } from "next/router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider } from "react-redux";
-import { PersistGate } from "redux-persist/integration/react";
-import { Analytics } from "@vercel/analytics/react";
 import "../styles/globals.css";
-import { store, persistor } from "../lib/store/store";
-import SEO from "../lib/modules/SEO";
-import AnalyticsTracker from "../lib/ui/AnalyticsTracker";
-import PostHogProvider from "../lib/ui/PostHogProvider";
+import { store } from "../lib/store/store";
 
 import { ThemeProvider } from "../lib/context/ThemeContext";
 
@@ -38,18 +33,7 @@ const MyApp = ({ Component, pageProps }) => {
 
 	return (
 		<QueryClientProvider client={queryClient}>
-			<ThemeProvider>
-				{/* PostHog Provider - Session Replays & Product Analytics */}
-				<PostHogProvider>
-					{/* Automatic SEO tags based on route - configured in lib/config/seo.js */}
-					<SEO />
-					{/* Analytics Tracker - tracks once per session */}
-					<AnalyticsTracker />
-					{AppComponent}
-					{/* Vercel Analytics - Web Performance & Visitor Metrics */}
-					<Analytics />
-				</PostHogProvider>
-			</ThemeProvider>
+			<ThemeProvider>{AppComponent}</ThemeProvider>
 		</QueryClientProvider>
 	);
 };

@@ -1,9 +1,9 @@
 {
-	"name": "saas-starter-boilerplate",
+	"name": "clawdnote",
 	"version": "1.0.0",
-	"description": "SAAS starter boilerplate",
+	"description": "Local-first AI Note Taking App with MCP and 3D Graph Visualization",
 	"main": "pages/index.js",
-	"repository": "https://github.com/shreyvijayvargiya/profiler",
+	"repository": "https://github.com/shreyvijayvargiya/clawdnote",
 	"author": "shreyvijayvargiya",
 	"license": "MIT",
 	"private": true,
@@ -12,8 +12,7 @@
 		"build": "next build",
 		"start": "next start",
 		"clean": "yarn cache clean",
-		"lint": "next lint",
-		"configure": "node scripts/configure.js"
+		"lint": "next lint"
 	},
 	"dependencies": {
 		"@ai-sdk/openai": "^3.0.28",
@@ -58,8 +57,6 @@
 		"d3-force-3d": "^3.0.6",
 		"dexie": "^4.3.0",
 		"dexie-react-hooks": "^4.2.0",
-		"firebase": "^11.10.0",
-		"firebase-admin": "^13.6.1",
 		"framer-motion": "^12.6.2",
 		"fuse.js": "^7.1.0",
 		"js-cookie": "^3.0.5",

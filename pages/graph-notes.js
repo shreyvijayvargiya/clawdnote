@@ -14,7 +14,6 @@ import {
 	Moon,
 	Zap,
 } from "lucide-react";
-import { auth } from "../lib/config/firebase";
 import { useLiveQuery } from "dexie-react-hooks";
 import { noteService } from "../lib/db/noteService";
 import { db as localDb } from "../lib/db/localDb";
@@ -24,8 +23,11 @@ import { useTheme } from "../lib/context/ThemeContext";
 
 // Animated Star Field Component
 const CosmosBackground = ({ isDarkMode }) => {
-	const stars = useMemo(() => {
-		return Array.from({ length: 150 }).map((_, i) => ({
+	const [stars, setStars] = useState([]);
+
+	useEffect(() => {
+		// Generate stars only on the client side to avoid hydration mismatch
+		const generatedStars = Array.from({ length: 150 }).map((_, i) => ({
 			id: i,
 			size: Math.random() * 2 + 1,
 			x: Math.random() * 100,
@@ -33,6 +35,7 @@ const CosmosBackground = ({ isDarkMode }) => {
 			duration: Math.random() * 3 + 2,
 			delay: Math.random() * 5,
 		}));
+		setStars(generatedStars);
 	}, []);
 
 	return (
@@ -84,23 +87,12 @@ const ForceGraph3D = dynamic(() => import("react-force-graph-3d"), {
 
 const GraphNotesPage = () => {
 	const { isDarkMode, toggleTheme } = useTheme();
-	const [user, setUser] = useState(null);
+	const [user] = useState({ uid: "local-user" });
 	const [searchQuery, setSearchQuery] = useState("");
 	const [embeddings, setEmbeddings] = useState({});
 	const [isCalculating, setIsCalculating] = useState(false);
 	const router = useRouter();
 	const graphRef = useRef();
-
-	// Auth State
-	useEffect(() => {
-		const unsubscribe = auth.onAuthStateChanged((u) => {
-			if (!u && typeof window !== "undefined") {
-				router.push("/");
-			}
-			setUser(u);
-		});
-		return () => unsubscribe();
-	}, [router]);
 
 	// Fetch Notes Locally
 	const notes =
@@ -182,7 +174,7 @@ const GraphNotesPage = () => {
 		return { nodes, links };
 	}, [notes, embeddings, searchQuery, isDarkMode]);
 
-	if (!user || isNotesLoading) {
+	if (isNotesLoading) {
 		return (
 			<div
 				className={`h-screen w-screen flex flex-col items-center justify-center ${isDarkMode ? "bg-[#020205]" : "bg-white"} text-indigo-500`}
