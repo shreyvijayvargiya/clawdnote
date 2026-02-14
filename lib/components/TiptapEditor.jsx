@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
-import Image from "@tiptap/extension-image";
+import TiptapImage from "@tiptap/extension-image";
 import Table from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
@@ -84,6 +84,9 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 		if (mediaType === "image") {
 			if (mediaUrl) {
 				editor.chain().focus().setImage({ src: mediaUrl }).run();
+				// Update content ref and save immediately for large assets
+				contentRef.current = editor.getHTML();
+				saveNoteImmediately();
 			}
 		} else if (mediaType === "table") {
 			editor
@@ -142,10 +145,26 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 	const handleFileUpload = (e) => {
 		const file = e.target.files[0];
 		if (file) {
+			if (file.size > 5 * 1024 * 1024) {
+				toast.error("Image too large (max 5MB)");
+				return;
+			}
 			const reader = new FileReader();
+			setIsSaving(true);
+			toast.info("Processing image...");
 			reader.onload = (event) => {
 				editor.chain().focus().setImage({ src: event.target.result }).run();
+				// Update content ref and save immediately for large assets
+				const html = editor.getHTML();
+				contentRef.current = html;
+				saveNoteImmediately().then(() => {
+					toast.success("Image saved locally");
+				});
 				setShowMediaModal(false);
+			};
+			reader.onerror = () => {
+				toast.error("Failed to read image file");
+				setIsSaving(false);
 			};
 			reader.readAsDataURL(file);
 		}
@@ -317,23 +336,28 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 	// Use refs to avoid stale closures in debounced function
 	const titleRef = useRef(title);
 	const contentRef = useRef(initialNote.content || "");
+	const initialNoteRef = useRef(initialNote);
+
+	const saveNoteImmediately = async () => {
+		setIsSaving(true);
+		try {
+			const savedNote = await noteService.saveNote(user.uid, {
+				...initialNoteRef.current,
+				title: titleRef.current,
+				content: contentRef.current,
+			});
+			if (onUpdate) onUpdate(savedNote);
+		} catch (error) {
+			console.error("Manual save failed:", error);
+			toast.error("Save failed locally");
+		} finally {
+			setIsSaving(false);
+		}
+	};
 
 	const debouncedUpdate = useRef(
 		debounce(async () => {
-			setIsSaving(true);
-			try {
-				const savedNote = await noteService.saveNote(user.uid, {
-					...initialNote,
-					title: titleRef.current,
-					content: contentRef.current,
-				});
-				if (onUpdate) onUpdate(savedNote);
-			} catch (error) {
-				console.error("Auto-save failed:", error);
-				toast.error("Auto-save failed locally");
-			} finally {
-				setIsSaving(false);
-			}
+			await saveNoteImmediately();
 		}, 1000),
 	).current;
 
@@ -356,7 +380,13 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 			Placeholder.configure({
 				placeholder: "Type / for commands...",
 			}),
-			Image,
+			TiptapImage.configure({
+				allowBase64: true,
+				HTMLAttributes: {
+					class:
+						"rounded-2xl shadow-lg border border-zinc-200 dark:border-zinc-800 my-8",
+				},
+			}),
 			Table.configure({
 				resizable: true,
 			}),
@@ -457,10 +487,28 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 		],
 		content: initialNote.content || "",
 		onUpdate: ({ editor }) => {
-			contentRef.current = editor.getHTML();
+			const html = editor.getHTML();
+			contentRef.current = html;
 			debouncedUpdate();
 		},
+		onBlur: () => {
+			saveNoteImmediately();
+		},
 	});
+	// Update refs when props change
+	useEffect(() => {
+		// Only update local state if the note ID actually changed
+		if (initialNote.id !== initialNoteRef.current?.id) {
+			setTitle(initialNote.title || "Untitled Note");
+			titleRef.current = initialNote.title || "Untitled Note";
+			contentRef.current = initialNote.content || "";
+			// If we have an editor, we should also update its content
+			if (editor) {
+				editor.commands.setContent(initialNote.content || "");
+			}
+		}
+		initialNoteRef.current = initialNote;
+	}, [initialNote, editor]);
 
 	// Voice Recording Logic
 	useEffect(() => {
@@ -578,7 +626,11 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 						}`}
 						title="Voice Note"
 					>
-						{isRecording ? <Square className="w-4 h-4 fill-current" /> : <Mic className="w-4 h-4" />}
+						{isRecording ? (
+							<Square className="w-4 h-4 fill-current" />
+						) : (
+							<Mic className="w-4 h-4" />
+						)}
 					</button>
 				</div>
 			</div>
@@ -586,23 +638,41 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 			{/* Toolbar - Floating & Minimal */}
 			<div className="max-w-4xl mx-auto w-full px-8 mb-4">
 				<div
-					className={`py-1.5 px-2 border ${isDarkMode ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white/50"} backdrop-blur-md rounded-2xl flex items-center gap-0.5 overflow-x-auto scrollbar-hide sticky top-0 z-10 shadow-sm`}
+					className={`py-1.5 px-2 border ${isDarkMode ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white/50"} backdrop-blur-md rounded-2xl flex items-center gap-0.5 overflow-x-auto scrollbar-hide sticky top-0 z-10 `}
 				>
 					<ToolbarButton
+						active={false}
+						onClick={() => saveNoteImmediately()}
+						isDarkMode={isDarkMode}
+					>
+						<Save
+							className={`w-3.5 h-3.5 ${isSaving ? "animate-pulse text-indigo-500" : ""}`}
+						/>
+					</ToolbarButton>
+					<div
+						className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`}
+					/>
+					<ToolbarButton
 						active={editor.isActive("heading", { level: 1 })}
-						onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+						onClick={() =>
+							editor.chain().focus().toggleHeading({ level: 1 }).run()
+						}
 						isDarkMode={isDarkMode}
 					>
 						<Heading1 className="w-3.5 h-3.5" />
 					</ToolbarButton>
 					<ToolbarButton
 						active={editor.isActive("heading", { level: 2 })}
-						onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+						onClick={() =>
+							editor.chain().focus().toggleHeading({ level: 2 }).run()
+						}
 						isDarkMode={isDarkMode}
 					>
 						<Heading2 className="w-3.5 h-3.5" />
 					</ToolbarButton>
-					<div className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`} />
+					<div
+						className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`}
+					/>
 					<ToolbarButton
 						active={editor.isActive("bold")}
 						onClick={() => editor.chain().focus().toggleBold().run()}
@@ -628,7 +698,9 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 					>
 						<LinkIcon className="w-3.5 h-3.5" />
 					</ToolbarButton>
-					<div className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`} />
+					<div
+						className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`}
+					/>
 					<ToolbarButton
 						active={editor.isActive("bulletList")}
 						onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -650,7 +722,9 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 					>
 						<CheckSquare className="w-3.5 h-3.5" />
 					</ToolbarButton>
-					<div className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`} />
+					<div
+						className={`w-px h-4 ${isDarkMode ? "bg-zinc-800" : "bg-zinc-200"} mx-1`}
+					/>
 					<ToolbarButton
 						active={editor.isActive("codeBlock")}
 						onClick={() => editor.chain().focus().toggleCodeBlock().run()}
@@ -937,7 +1011,7 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 			)}
 		</div>
 	);
-};
+};;
 
 const ToolbarButton = ({ active, onClick, children, isDarkMode }) => (
 	<button

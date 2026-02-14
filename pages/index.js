@@ -196,56 +196,71 @@ const IndexPage = () => {
 
 			<div className="flex h-screen overflow-hidden relative">
 				{/* Sidebar Toggle (Floating) */}
-				<button
-					onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-					className={`absolute left-6 bottom-6 z-50 p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl hover:scale-110 transition-all hidden md:flex items-center justify-center group`}
-					title={isSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
-				>
-					<Menu className={`w-5 h-5 transition-colors ${isSidebarCollapsed ? "text-zinc-500" : "text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-200"}`} />
-				</button>
+				<AnimatePresence>
+					{isSidebarCollapsed && (
+						<motion.button
+							initial={{ opacity: 0, x: -20 }}
+							animate={{ opacity: 1, x: 0 }}
+							exit={{ opacity: 0, x: -20 }}
+							onClick={() => setIsSidebarCollapsed(false)}
+							className={`absolute left-4 top-4 z-50 p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl hover:scale-110 transition-all hidden md:flex items-center justify-center group`}
+							title="Show Sidebar"
+						>
+							<Menu className="w-4 h-4 text-zinc-400 group-hover:text-zinc-500 transition-colors" />
+						</motion.button>
+					)}
+				</AnimatePresence>
 
 				{/* Sidebar */}
 				<aside
-					className={`fixed inset-y-0 left-0 z-50 w-80 border-r border-zinc-100 dark:border-zinc-900 flex flex-col bg-zinc-50/50 dark:bg-zinc-950 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) md:relative ${
+					className={`fixed inset-y-0 left-0 z-50 w-72 border-r border-zinc-100 dark:border-zinc-900 flex flex-col bg-zinc-50/50 dark:bg-zinc-950 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) md:relative ${
 						isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-					} ${isSidebarCollapsed ? "md:-ml-80" : "md:ml-0"}`}
+					} ${isSidebarCollapsed ? "md:-ml-72" : "md:ml-0"}`}
 				>
-					<div className="p-8 flex flex-col h-full">
-						<div className="flex items-center justify-between mb-10">
-							<div className="flex items-center gap-3">
-								<div className="w-10 h-10 rounded-2xl bg-zinc-600 shadow-lg shadow-zinc-500/20 flex items-center justify-center rotate-3 hover:rotate-0 transition-transform duration-300">
-									<FileText className="w-5 h-5 text-white" />
-								</div>
-								<h1 className="text-xl font-black tracking-tight">OpenNote</h1>
+					<div className="p-5 flex flex-col h-full">
+						<div className="flex items-center justify-between mb-6">
+							<div className="flex items-center gap-2.5">
+								<h1 className="text-lg font-black tracking-tight">OpenNote</h1>
 							</div>
-							<div className="flex items-center gap-1.5">
+							<div className="flex items-center gap-1">
+								<button
+									onClick={() => setIsSidebarCollapsed(true)}
+									className="p-2 rounded-xl hover:bg-white dark:hover:bg-zinc-900 transition-all text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hidden md:flex"
+									title="Collapse Sidebar"
+								>
+									<Menu className="w-4 h-4" />
+								</button>
 								<button
 									onClick={toggleTheme}
-									className="p-2.5 rounded-xl hover:bg-white dark:hover:bg-zinc-900 transition-all text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+									className="p-2 rounded-xl hover:bg-white dark:hover:bg-zinc-900 transition-all text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
 								>
-									{isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+									{isDarkMode ? (
+										<Sun className="w-4 h-4" />
+									) : (
+										<Moon className="w-4 h-4" />
+									)}
 								</button>
 								<button
 									onClick={handleCreateNote}
-									className="p-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:scale-105 transition-all shadow-md"
+									className="p-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:scale-105 transition-all shadow-md"
 								>
 									<Plus className="w-4 h-4" />
 								</button>
 							</div>
 						</div>
 
-						<div className="relative mb-8">
-							<Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300" />
+						<div className="relative mb-6">
+							<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-300" />
 							<input
 								type="text"
-								placeholder="Quick search..."
-								className="w-full pl-11 pr-4 py-3 bg-white dark:bg-zinc-900 border-none rounded-2xl text-sm shadow-sm focus:ring-2 focus:ring-zinc-500/10 transition-all outline-none placeholder:text-zinc-300"
+								placeholder="Search notes..."
+								className="w-full pl-10 pr-4 py-2 bg-white dark:bg-zinc-900 border-none rounded-xl text-xs shadow-sm focus:ring-1 focus:ring-zinc-500/20 transition-all outline-none placeholder:text-zinc-300"
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 							/>
 						</div>
 
-						<div className="flex-1 overflow-y-auto -mx-2 px-2 space-y-1.5 scrollbar-hide">
+						<div className="flex-1 overflow-y-auto -mx-1 px-1 space-y-0.5 scrollbar-hide">
 							{filteredNotes.length > 0 ? (
 								filteredNotes.map((note) => (
 									<button
@@ -254,19 +269,23 @@ const IndexPage = () => {
 											setActiveNoteId(note.id);
 											if (window.innerWidth < 768) setIsSidebarOpen(false);
 										}}
-										className={`w-full text-left p-4 rounded-2xl transition-all group relative flex flex-col gap-1.5 ${
+										className={`w-full text-left p-2.5 rounded-xl transition-all group relative flex flex-col gap-0.5 ${
 											activeNoteId === note.id
 												? "bg-white dark:bg-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800"
 												: "hover:bg-white/50 dark:hover:bg-zinc-900/50"
 										}`}
 									>
-										<span className={`font-bold text-xs truncate pr-6 ${activeNoteId === note.id ? "text-zinc-600 dark:text-zinc-400" : "text-zinc-700 dark:text-zinc-300"}`}>
+										<span
+											className={`font-bold text-[11px] truncate pr-6 ${activeNoteId === note.id ? "text-zinc-600 dark:text-zinc-400" : "text-zinc-700 dark:text-zinc-300"}`}
+										>
 											{note.title || "Untitled"}
 										</span>
-										<span className={`text-[10px] truncate leading-relaxed ${activeNoteId === note.id ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-500"}`}>
+										<span
+											className={`text-[9px] truncate leading-relaxed ${activeNoteId === note.id ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-500"}`}
+										>
 											{note.content?.replace(/<[^>]*>/g, "") || "No content"}
 										</span>
-										<div className="absolute right-3 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
+										<div className="absolute right-2 top-2.5 opacity-0 group-hover:opacity-100 transition-opacity">
 											<button
 												onClick={(e) => {
 													e.stopPropagation();
@@ -274,45 +293,50 @@ const IndexPage = () => {
 												}}
 												className="p-1 text-zinc-300 hover:text-red-500 transition-colors"
 											>
-												<Trash className="w-3.5 h-3.5" />
+												<Trash className="w-3 h-3" />
 											</button>
 										</div>
 									</button>
 								))
 							) : (
-								<div className="py-20 text-center text-zinc-300 flex flex-col items-center gap-3">
-									<div className="w-16 h-16 rounded-[2rem] bg-white dark:bg-zinc-900 flex items-center justify-center mb-2">
-										<Search className="w-6 h-6 opacity-10" />
-									</div>
-									<p className="text-xs font-bold tracking-widest uppercase opacity-40">No Results</p>
+								<div className="py-12 text-center text-zinc-300 flex flex-col items-center gap-2">
+									<p className="text-[10px] font-bold tracking-widest uppercase opacity-40">
+										No Results
+									</p>
 								</div>
 							)}
 						</div>
 
-						<div className="pt-6 mt-6 border-t border-zinc-100 dark:border-zinc-900 space-y-3">
-							<div className="flex items-center justify-between px-3 py-1">
+						<div className="pt-4 mt-4 border-t border-zinc-100 dark:border-zinc-900 space-y-2">
+							<div className="flex items-center justify-between px-2 py-1">
 								<div className="flex items-center gap-2">
-									<div className={`w-2 h-2 rounded-full ${mcpStatus.connected ? "bg-green-500" : "bg-zinc-200 dark:bg-zinc-800"}`} />
-									<span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">MCP Status</span>
+									<div
+										className={`w-1.5 h-1.5 rounded-full ${mcpStatus.connected ? "bg-green-500" : "bg-zinc-200 dark:bg-zinc-800"}`}
+									/>
+									<span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+										Status
+									</span>
 								</div>
-								<span className={`text-[10px] font-bold ${mcpStatus.connected ? "text-green-600 dark:text-green-400" : "text-zinc-400"}`}>
-									{mcpStatus.connected ? "MCP CONNECTED" : "OFFLINE"}
+								<span
+									className={`text-[10px] font-bold ${mcpStatus.connected ? "text-green-600 dark:text-green-400" : "text-zinc-400"}`}
+								>
+									{mcpStatus.connected ? "MCP" : "OFFLINE"}
 								</span>
 							</div>
 
-							<div className="grid grid-cols-2 gap-2">
+							<div className="grid grid-cols-2 gap-1.5">
 								<Link
 									href="/graph-notes"
-									className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-transparent hover:border-zinc-500/20 transition-all text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-500 group shadow-sm"
+									className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-transparent hover:border-zinc-500/20 transition-all text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-500 group shadow-sm"
 								>
-									<Network className="w-5 h-5 transition-transform group-hover:scale-110" />
+									<Network className="w-3.5 h-3.5" />
 									Map
 								</Link>
 								<button
 									onClick={() => setShowProfileModal(true)}
-									className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-transparent hover:border-zinc-500/20 transition-all text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-500 group shadow-sm"
+									className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-transparent hover:border-zinc-500/20 transition-all text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-500 group shadow-sm"
 								>
-									<Settings className="w-5 h-5 transition-transform group-hover:rotate-90" />
+									<Settings className="w-3.5 h-3.5" />
 									Config
 								</button>
 							</div>
@@ -330,7 +354,9 @@ const IndexPage = () => {
 						>
 							<Menu className="w-5 h-5" />
 						</button>
-						<h1 className="text-xs font-black tracking-[0.2em] uppercase">Clawd</h1>
+						<h1 className="text-xs font-black tracking-[0.2em] uppercase">
+							OpenNote
+						</h1>
 						<button
 							onClick={handleCreateNote}
 							className="p-3 rounded-2xl bg-zinc-600 text-white shadow-lg shadow-zinc-500/20"
@@ -341,7 +367,7 @@ const IndexPage = () => {
 
 					<div className="flex-1 h-full overflow-hidden flex flex-col">
 						{activeNote ? (
-							<motion.div 
+							<motion.div
 								key={activeNote.id}
 								initial={{ opacity: 0, x: 20 }}
 								animate={{ opacity: 1, x: 0 }}
@@ -358,15 +384,21 @@ const IndexPage = () => {
 							</motion.div>
 						) : (
 							<div className="flex-1 h-full flex flex-col items-center justify-center p-12 bg-zinc-50/20 dark:bg-zinc-950/20">
-								<div className="relative group cursor-pointer" onClick={handleCreateNote}>
+								<div
+									className="relative group cursor-pointer"
+									onClick={handleCreateNote}
+								>
 									<div className="absolute inset-0 bg-zinc-500 rounded-[3rem] blur-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-700" />
 									<div className="relative w-32 h-32 bg-white dark:bg-zinc-900 rounded-[3rem] shadow-2xl border border-zinc-100 dark:border-zinc-800 flex items-center justify-center mb-12 rotate-6 group-hover:rotate-0 transition-all duration-700 ease-out">
 										<FileText className="w-12 h-12 text-zinc-500" />
 									</div>
 								</div>
-								<h2 className="text-3xl font-black mb-4 tracking-tight">Pure focus.</h2>
+								<h2 className="text-3xl font-black mb-4 tracking-tight">
+									Pure focus.
+								</h2>
 								<p className="text-sm text-zinc-400 dark:text-zinc-500 max-w-[280px] text-center leading-relaxed mb-12 font-medium">
-									Your ideas deserve a clean space. Select a note or start something fresh.
+									Your ideas deserve a clean space. Select a note or start
+									something fresh.
 								</p>
 								<button
 									onClick={handleCreateNote}
@@ -460,14 +492,14 @@ const IndexPage = () => {
 														<div className="flex items-center gap-1">
 															<button
 																onClick={() => copyToClipboard(k.key)}
-																className="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-700 text-zinc-500"
+																className="p-2 rounded-xl hover:bg-white dark:hover:bg-zinc-700 text-zinc-500"
 																title="Copy Key"
 															>
 																<Copy className="w-3.5 h-3.5" />
 															</button>
 															<button
 																onClick={() => deleteApiKey(k.id)}
-																className="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-700 text-red-500"
+																className="p-2 rounded-xl hover:bg-white dark:hover:bg-zinc-700 text-red-500"
 																title="Delete Key"
 															>
 																<Trash2 className="w-3.5 h-3.5" />
