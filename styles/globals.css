@@ -2,136 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Leaflet CSS for map components */
-@import "leaflet/dist/leaflet.css";
-
-.blog-content {
-	line-height: 1.6;
-	color: #3f3f46;
-}
-
-.dark .blog-content {
-	color: #d4d4d8;
-}
-
-.blog-content h1 {
-	font-size: 2em;
-	font-weight: 700;
-	color: #18181b;
-	margin-top: 1.6em;
-	margin-bottom: 0.75em;
-}
-
-.dark .blog-content h1 {
-	color: #f4f4f5;
-}
-
-.blog-content h2 {
-	font-size: 1.5em;
-	font-weight: 600;
-	color: #27272a;
-	margin-top: 1.25em;
-	margin-bottom: 0.5em;
-}
-
-.dark .blog-content h2 {
-	color: #e4e4e7;
-}
-
-.blog-content h3 {
-	font-size: 1.25em;
-	font-weight: 600;
-	color: #3f3f46;
-	margin-top: 1em;
-	margin-bottom: 0.5em;
-}
-
-.dark .blog-content h3 {
-	color: #d4d4d8;
-}
-.blog-content p {
-	margin-bottom: 1.25em;
-	line-height: 1.8;
-}
-.blog-content img {
-	width: 100%;
-	height: auto;
-	border-radius: 12px;
-	margin: 2em 0;
-}
-.blog-content ul,
-.blog-content ol {
-	margin: 1.5em 0;
-	padding-left: 2em;
-}
-.blog-content li {
-	margin: 0.5em 0;
-	line-height: 1.8;
-}
-.blog-content ul li::marker,
-.blog-content ol li::marker {
-	font-weight: 700;
-	color: #18181b;
-}
-
-.dark .blog-content ul li::marker,
-.dark .blog-content ol li::marker {
-	color: #f4f4f5;
-}
-.blog-content ul li strong,
-.blog-content ol li strong {
-	font-weight: 700;
-	color: #18181b;
-}
-.blog-content a {
-	color: #3b82f6;
-	text-decoration: underline;
-}
-.blog-content a:hover {
-	color: #2563eb;
-}
-.blog-content strong {
-	font-weight: 600;
-	color: #27272a;
-}
-.blog-content em {
-	font-style: italic;
-}
-.blog-content blockquote {
-	border-left: 4px solid #e4e4e7;
-	padding-left: 1.5em;
-	margin: 1.5em 0;
-	font-style: italic;
-	color: #71717a;
-}
-.blog-content code {
-	background: #f4f4f5;
-	padding: 0.2em 0.4em;
-	border-radius: 4px;
-	font-size: 0.9em;
-	color: #dc2626;
-}
-.blog-content pre {
-	background: #f4f4f5;
-	color: #18181b;
-	padding: 1.5em;
-	border-radius: 8px;
-	overflow-x: auto;
-	margin: 1.5em 0;
-	border: 1px solid #e4e4e7;
-}
-
-.dark .blog-content pre {
-	background: #18181b;
-	color: #fafafa;
-	border: 1px solid #27272a;
-}
-.blog-content pre code {
-	background: transparent;
-	color: inherit;
-	padding: 0;
-}
-
 .ProseMirror {
 	outline: none !important;
 	color: inherit;
@@ -223,7 +93,6 @@
 	color: inherit;
 	margin: 0.25em 0;
 }
-
 
 .ProseMirror li[data-type="taskItem"] {
 	display: flex;
@@ -408,24 +277,42 @@
 	background: #18181b;
 }
 
-.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+.ProseMirror
+	ul[data-type="taskList"]
+	li
+	> label
+	input[type="checkbox"]:checked {
 	background-color: #18181b;
 	border-color: #18181b;
 }
 
-.dark .ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+.dark
+	.ProseMirror
+	ul[data-type="taskList"]
+	li
+	> label
+	input[type="checkbox"]:checked {
 	background-color: #f4f4f5;
 	border-color: #f4f4f5;
 }
 
-.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
+.ProseMirror
+	ul[data-type="taskList"]
+	li
+	> label
+	input[type="checkbox"]:checked::after {
 	content: "✓";
 	color: white;
 	font-size: 0.8em;
 	font-weight: bold;
 }
 
-.dark .ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
+.dark
+	.ProseMirror
+	ul[data-type="taskList"]
+	li
+	> label
+	input[type="checkbox"]:checked::after {
 	color: #09090b;
 }
 
@@ -438,7 +325,7 @@
 .ProseMirror pre {
 	background: #f4f4f5;
 	color: #18181b;
-	font-family: 'JetBrains Mono', monospace;
+	font-family: "JetBrains Mono", monospace;
 	padding: 1rem 1.5rem;
 	border-radius: 0.75rem;
 	margin: 1.5rem 0;
@@ -460,7 +347,7 @@
 
 .hljs-comment,
 .hljs-quote {
-  color: #71717a;
+	color: #71717a;
 }
 
 .hljs-variable,
@@ -472,7 +359,7 @@
 .hljs-link,
 .hljs-selector-id,
 .hljs-selector-class {
-  color: #e11d48;
+	color: #e11d48;
 }
 
 .hljs-number,
@@ -482,41 +369,41 @@
 .hljs-literal,
 .hljs-type,
 .hljs-params {
-  color: #f59e0b;
+	color: #f59e0b;
 }
 
 .hljs-string,
 .hljs-symbol,
 .hljs-bullet,
 .hljs-addition {
-  color: #10b981;
+	color: #10b981;
 }
 
 .hljs-title,
 .hljs-section {
-  color: #3b82f6;
+	color: #3b82f6;
 }
 
 .hljs-keyword,
 .hljs-selector-tag {
-  color: #8b5cf6;
+	color: #8b5cf6;
 }
 
 .dark .hljs-comment,
 .dark .hljs-quote {
-  color: #a1a1aa;
+	color: #a1a1aa;
 }
 
 .dark .hljs-keyword,
 .dark .hljs-selector-tag {
-  color: #a78bfa;
+	color: #a78bfa;
 }
 
 .dark .hljs-string,
 .dark .hljs-symbol,
 .dark .hljs-bullet,
 .dark .hljs-addition {
-  color: #34d399;
+	color: #34d399;
 }
 
 .dark .hljs-number,
@@ -526,15 +413,15 @@
 .dark .hljs-literal,
 .dark .hljs-type,
 .dark .hljs-params {
-  color: #fbbf24;
+	color: #fbbf24;
 }
 
 .hljs-emphasis {
-  font-style: italic;
+	font-style: italic;
 }
 
 .hljs-strong {
-  font-weight: 700;
+	font-weight: 700;
 }
 
 /* Table Dark Mode */
@@ -549,11 +436,13 @@
 	color: #f4f4f5;
 }
 
-.ProseMirror table td, .ProseMirror table th {
+.ProseMirror table td,
+.ProseMirror table th {
 	border: 1px solid #e4e4e7;
 }
 
-.dark .ProseMirror table td, .dark .ProseMirror table th {
+.dark .ProseMirror table td,
+.dark .ProseMirror table th {
 	border: 1px solid #27272a;
 }
 
@@ -602,37 +491,4 @@
 	-ms-overflow-style: none;
 	scrollbar-width: none;
 }
-/* Premium Backgrounds */
-.bg-grid-zinc {
-	background-image: radial-gradient(#e4e4e7 1px, transparent 1px);
-	background-size: 24px 24px;
-}
 
-.bg-mesh-gradient {
-	background-color: #ffffff;
-	background-image: radial-gradient(
-			at 0% 0%,
-			hsla(240, 5%, 96%, 1) 0,
-			transparent 50%
-		),
-		radial-gradient(at 50% 0%, hsla(240, 5%, 98%, 1) 0, transparent 50%),
-		radial-gradient(at 100% 0%, hsla(240, 5%, 96%, 1) 0, transparent 50%);
-}
-
-.bg-dot-pattern {
-	background-image: radial-gradient(circle, #e4e4e7 1px, transparent 1px);
-	background-size: 20px 20px;
-}
-
-.glass-morphism {
-	background: rgba(255, 255, 255, 0.7);
-	backdrop-filter: blur(10px);
-	-webkit-backdrop-filter: blur(10px);
-	border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.text-gradient {
-	background: linear-gradient(135deg, #18181b 0%, #71717a 100%);
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-}

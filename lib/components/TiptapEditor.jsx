@@ -34,7 +34,6 @@ lowlight.registerLanguage("json", json);
 
 import SlashCommand from "../tiptap/slash-command";
 import SlashCommandList from "./SlashCommandList";
-import ChatSidebar from "./ChatSidebar";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
 import {
@@ -57,7 +56,6 @@ import {
 	Link as LinkIcon,
 	Info,
 	Plus,
-	MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { debounce } from "lodash";
@@ -73,7 +71,6 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [showMediaModal, setShowMediaModal] = useState(false);
-	const [isChatOpen, setIsChatOpen] = useState(false);
 	const [mediaType, setMediaType] = useState(null); // 'image' or 'table'
 	const [mediaUrl, setMediaUrl] = useState("");
 	const [linkUrl, setLinkUrl] = useState("");
@@ -316,15 +313,10 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 	};
 
 	const [title, setTitle] = useState(initialNote.title || "Untitled Note");
-	const [syncStatus, setSyncStatus] = useState("local");
 
 	// Use refs to avoid stale closures in debounced function
 	const titleRef = useRef(title);
 	const contentRef = useRef(initialNote.content || "");
-
-	useEffect(() => {
-		titleRef.current = title;
-	}, [title]);
 
 	const debouncedUpdate = useRef(
 		debounce(async () => {
@@ -449,7 +441,8 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 					}
 				},
 				HTMLAttributes: {
-					class: "text-indigo-600 dark:text-indigo-400 underline decoration-indigo-400/50 underline-offset-4 cursor-pointer font-medium transition-all hover:text-indigo-800 dark:hover:text-indigo-200",
+					class:
+						"text-indigo-600 dark:text-indigo-400 underline decoration-indigo-400/50 underline-offset-4 cursor-pointer font-medium transition-all hover:text-indigo-800 dark:hover:text-indigo-200",
 				},
 			}),
 			Markdown.configure({
@@ -558,14 +551,14 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 		>
 			{/* Editor Header */}
 			<div
-				className={`px-8 py-6 border-b ${isDarkMode ? "border-zinc-800 bg-zinc-950" : "border-zinc-100 bg-white"} flex items-center justify-between z-10`}
+				className={`p-2 border-b ${isDarkMode ? "border-zinc-800 bg-zinc-950" : "border-zinc-100 bg-white"} flex items-center justify-between z-10`}
 			>
 				<input
 					type="text"
 					value={title}
 					onChange={handleTitleChange}
 					placeholder="Note Title"
-					className={`text-3xl font-bold bg-transparent border-none outline-none w-full max-w-3xl ${isDarkMode ? "text-zinc-100 placeholder:text-zinc-800" : "text-zinc-900 placeholder:text-zinc-200"}`}
+					className={`text-lg font-bold bg-transparent border-none outline-none w-full max-w-3xl ${isDarkMode ? "text-zinc-100 placeholder:text-zinc-800" : "text-zinc-900 placeholder:text-zinc-200"}`}
 				/>
 				<div className="flex items-center gap-2">
 					{isSaving && (
@@ -584,16 +577,6 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 						) : (
 							<Mic className="w-5 h-5" />
 						)}
-					</button>
-					<button
-						onClick={() => setIsChatOpen(!isChatOpen)}
-						className={`p-2.5 rounded-xl transition-all ${
-							isChatOpen
-								? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-								: `hover:${isDarkMode ? "bg-zinc-800" : "bg-zinc-100"} text-zinc-500`
-						}`}
-					>
-						<MessageSquare className="w-5 h-5" />
 					</button>
 				</div>
 			</div>
@@ -958,12 +941,6 @@ const TiptapEditor = ({ initialNote, onUpdate }) => {
 					</div>
 				</div>
 			)}
-			{/* Chat Sidebar */}
-			<ChatSidebar
-				isOpen={isChatOpen}
-				onClose={() => setIsChatOpen(false)}
-				isDarkMode={isDarkMode}
-			/>
 		</div>
 	);
 };

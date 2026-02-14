@@ -20,16 +20,19 @@ if (!global.mcpSessions) {
 
 // Cleanup stale sessions every 5 minutes
 if (!global.mcpCleanupStarted) {
-	setInterval(() => {
-		const now = Date.now();
-		const timeout = 1000 * 60 * 15; // 15 minutes
-		for (const [sid, session] of global.mcpSessions.entries()) {
-			if (now - session.lastSeen > timeout) {
-				console.log(`[MCP Server] Cleaning up stale session: ${sid}`);
-				global.mcpSessions.delete(sid);
+	setInterval(
+		() => {
+			const now = Date.now();
+			const timeout = 1000 * 60 * 15; // 15 minutes
+			for (const [sid, session] of global.mcpSessions.entries()) {
+				if (now - session.lastSeen > timeout) {
+					console.log(`[MCP Server] Cleaning up stale session: ${sid}`);
+					global.mcpSessions.delete(sid);
+				}
 			}
-		}
-	}, 1000 * 60 * 5);
+		},
+		1000 * 60 * 5,
+	);
 	global.mcpCleanupStarted = true;
 }
 
@@ -38,10 +41,15 @@ export default async function handler(req, res) {
 		const host = req.headers.host || "localhost:3000";
 		const protocol = host.includes("localhost") ? "http" : "https";
 		const urlObj = new URL(req.url, `${protocol}://${host}`);
-		
-		const sessionId = urlObj.searchParams.get("sessionId") || req.headers["mcp-session-id"] || urlObj.searchParams.get("sid");
-		
-		console.log(`[MCP Server] Request: ${req.method} ${req.url} (Session: ${sessionId || "new"})`);
+
+		const sessionId =
+			urlObj.searchParams.get("sessionId") ||
+			req.headers["mcp-session-id"] ||
+			urlObj.searchParams.get("sid");
+
+		console.log(
+			`[MCP Server] Request: ${req.method} ${req.url} (Session: ${sessionId || "new"})`,
+		);
 
 		if (sessionId) {
 			const session = global.mcpSessions.get(sessionId);
@@ -55,7 +63,8 @@ export default async function handler(req, res) {
 		}
 
 		// Authenticate - for local version, we'll allow any non-empty API key
-		const apiKey = urlObj.searchParams.get("apiKey") || req.headers["x-api-key"];
+		const apiKey =
+			urlObj.searchParams.get("apiKey") || req.headers["x-api-key"];
 
 		if (!apiKey) {
 			console.error("[MCP Server] Missing API Key for new session");
@@ -66,8 +75,8 @@ export default async function handler(req, res) {
 		console.log(`[MCP Server] Authenticating new session for local user`);
 
 		const mcpServer = new McpServer(
-			{ name: "clawdnote-hosted-local", version: "1.0.0" },
-			{ capabilities: { tools: {} } }
+			{ name: "opennote-hosted-local", version: "1.0.0" },
+			{ capabilities: { tools: {} } },
 		);
 
 		// Define Tools
@@ -92,24 +101,30 @@ export default async function handler(req, res) {
 						name: "ping",
 						description: "Check connection",
 						inputSchema: { type: "object", properties: {} },
-					}
+					},
 				],
 			};
 		});
 
-		mcpServer.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-			const { name, arguments: args } = request.params;
-			if (name === "ping") return { content: [{ type: "text", text: "pong" }] };
-			
-			// For a purely local app, server-side MCP is limited unless it can access local storage.
-			// We return a message explaining this for now.
-			return { 
-				content: [{ 
-					type: "text", 
-					text: "This application is now running in local-only mode. Server-side MCP tools are disabled. Please use the local stdio MCP server for direct note access." 
-				}] 
-			};
-		});
+		mcpServer.server.setRequestHandler(
+			CallToolRequestSchema,
+			async (request) => {
+				const { name, arguments: args } = request.params;
+				if (name === "ping")
+					return { content: [{ type: "text", text: "pong" }] };
+
+				// For a purely local app, server-side MCP is limited unless it can access local storage.
+				// We return a message explaining this for now.
+				return {
+					content: [
+						{
+							type: "text",
+							text: "This application is now running in local-only mode. Server-side MCP tools are disabled. Please use the local stdio MCP server for direct note access.",
+						},
+					],
+				};
+			},
+		);
 
 		const newSessionId = uuidv4();
 		const transport = new StreamableHTTPServerTransport({
@@ -117,16 +132,15 @@ export default async function handler(req, res) {
 		});
 
 		await mcpServer.connect(transport);
-		
-		global.mcpSessions.set(newSessionId, { 
-			mcpServer, 
-			transport, 
-			userId, 
-			lastSeen: Date.now() 
+
+		global.mcpSessions.set(newSessionId, {
+			mcpServer,
+			transport,
+			userId,
+			lastSeen: Date.now(),
 		});
 
 		await transport.handleRequest(req, res);
-
 	} catch (error) {
 		console.error("[MCP Server] Fatal Error:", error);
 		if (!res.headersSent) {

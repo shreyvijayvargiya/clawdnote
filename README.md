@@ -7,7 +7,7 @@ It combines rich-text editing (Tiptap), high-performance local storage (IndexedD
 ## Features
 
 - **Purely Local Storage**: Your notes are stored in your browser's IndexedDB via **Dexie.js**. Zero cloud dependency, zero latency, and 100% privacy.
-- **Tiptap Rich Text Editor**: 
+- **Tiptap Rich Text Editor**:
   - Markdown-like commands (`/` slash menu).
   - **Smart Link Support**: Automatic link detection (e.g., typing `google.com` creates a link) and custom link editing in Indigo.
   - Image, table, and task list support.
@@ -29,8 +29,8 @@ It combines rich-text editing (Tiptap), high-performance local storage (IndexedD
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/shreyvijayvargiya/clawdnote.git
-   cd clawdnote
+   git clone https://github.com/shreyvijayvargiya/opennote.git
+   cd opennote
    ```
 
 2. **Install dependencies**:
@@ -60,12 +60,15 @@ It combines rich-text editing (Tiptap), high-performance local storage (IndexedD
 ClawdNote includes a built-in MCP bridge that allows Claude Desktop to interact with your local notes.
 
 ### 1. Generating an API Key
+
 Open the application, click on your profile in the sidebar, and click **"New API Key"**. This key is stored locally and used to authenticate the MCP bridge.
 
 ### 2. Connecting Claude Desktop
+
 The application provides a ready-to-copy JSON configuration in the Profile modal. It automatically detects your project path.
 
 Add the configuration to your `claude_desktop_config.json`:
+
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 

@@ -8,7 +8,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,7 +38,7 @@ async function main() {
 	}
 
 	const mcpServer = new McpServer(
-		{ name: "clawdnote-bridge", version: "1.0.0" },
+		{ name: "opennote-bridge", version: "1.0.0" },
 		{ capabilities: { tools: {} } },
 	);
 
@@ -57,13 +57,15 @@ async function main() {
 		// Using modern StreamableHTTPClientTransport
 		hostedTransport = new StreamableHTTPClientTransport(url);
 		const client = new Client(
-			{ name: "clawdnote-bridge-client", version: "1.0.0" },
+			{ name: "opennote-bridge-client", version: "1.0.0" },
 			{ capabilities: {} },
 		);
 
 		try {
 			await client.connect(hostedTransport);
-			log("[Bridge] Connected to hosted server via Streamable HTTP successfully");
+			log(
+				"[Bridge] Connected to hosted server via Streamable HTTP successfully",
+			);
 			hostedClient = client;
 			return hostedClient;
 		} catch (error) {
@@ -79,7 +81,9 @@ async function main() {
 		try {
 			const client = await getHostedClient();
 			const tools = await client.listTools();
-			log(`[Bridge] Fetched ${tools.tools?.length || 0} tools from hosted server`);
+			log(
+				`[Bridge] Fetched ${tools.tools?.length || 0} tools from hosted server`,
+			);
 			return tools;
 		} catch (err) {
 			log(`[Bridge] Error fetching tools: ${err.message}`);
